@@ -47,57 +47,13 @@ data/raw_images/
 
 
 
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>id_code</th>
-      <th>diagnosis</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>1_left</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>1_right</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>2_left</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>2_right</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>3_left</td>
-      <td>2</td>
-    </tr>
-  </tbody>
-</table>
-</div>
+| id_code | diagnosis |
+|---|---|
+| 1_left | 0 |
+| 1_right | 0 |
+| 2_left | 0 |
+| 2_right | 0 |
+| 3_left | 2 |
 
 
 ## 4.2 Оценка качества разметки
@@ -267,63 +223,13 @@ data/raw_images/
 
 
 
-<div>
-<style scoped>
-    .dataframe tbody tr th:only-of-type {
-        vertical-align: middle;
-    }
-
-    .dataframe tbody tr th {
-        vertical-align: top;
-    }
-
-    .dataframe thead th {
-        text-align: right;
-    }
-</style>
-<table border="1" class="dataframe">
-  <thead>
-    <tr style="text-align: right;">
-      <th></th>
-      <th>id_code</th>
-      <th>diagnosis</th>
-      <th>fold</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <th>0</th>
-      <td>40887_left</td>
-      <td>0</td>
-      <td>1</td>
-    </tr>
-    <tr>
-      <th>1</th>
-      <td>39661_left</td>
-      <td>0</td>
-      <td>3</td>
-    </tr>
-    <tr>
-      <th>2</th>
-      <td>6374_left</td>
-      <td>1</td>
-      <td>4</td>
-    </tr>
-    <tr>
-      <th>3</th>
-      <td>16596_right</td>
-      <td>1</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <th>4</th>
-      <td>22285_right</td>
-      <td>0</td>
-      <td>4</td>
-    </tr>
-  </tbody>
-</table>
-</div>
+| id_code | diagnosis | fold |
+|---|---|---|
+| 40887_left | 0 | 1 |
+| 39661_left | 0 | 3 |
+| 6374_left | 1 | 4 |
+| 16596_right | 1 | 0 |
+| 22285_right | 0 | 4 |
 
 
 
