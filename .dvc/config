@@ -1,0 +1,6 @@
+[core]
+    remote = my_s3_bucket
+['remote "my_s3_bucket"']
+    url = s3://a-shihov
+    endpointurl = https://s3.lab.karpov.courses
+    use_ssl = true

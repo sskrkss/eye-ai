@@ -1,0 +1,12 @@
+.idea/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+venv/
+.venv/
+.env
+
+data/raw_images/
+data/processed_images/
+data/*.csv
