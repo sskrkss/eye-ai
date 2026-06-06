@@ -9,4 +9,5 @@ venv/
 
 data/raw_images/
 data/processed_images/
-data/*.csv
+data/labels/*
+!data/labels/*.dvc

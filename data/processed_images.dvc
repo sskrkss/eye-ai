@@ -1,6 +1,6 @@
 outs:
-- md5: 1ceb0ca3df755c6591c959196ab660f3.dir
-  size: 28441799519
-  nfiles: 92364
+- md5: cf2a6c1aad9cc585b81a10d0aaee3b76.dir
+  size: 6075819300
+  nfiles: 91953
   hash: md5
   path: processed_images
