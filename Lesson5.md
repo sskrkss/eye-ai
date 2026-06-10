@@ -1,6 +1,5 @@
 # 5. Baseline: от сырых данных до первых метрик
 
-
 ```python
 import os
 from math import gcd
@@ -54,14 +53,10 @@ from tqdm.auto import tqdm as tqdm_auto
 
 **3.** Запустить ячейки ниже — они объединят три файла разметки в единый `data/labels/all.csv`.
 
-
 ```python
 test_2015  = pd.read_csv('data/labels/test_2015.csv')
 test_2015.head()
 ```
-
-
-
 
 <div>
 
@@ -109,16 +104,10 @@ test_2015.head()
 </table>
 </div>
 
-
-
-
 ```python
 train_2015 = pd.read_csv('data/labels/train_2015.csv')
 train_2015.head()
 ```
-
-
-
 
 <div>
 
@@ -160,16 +149,10 @@ train_2015.head()
 </table>
 </div>
 
-
-
-
 ```python
 train_2019 = pd.read_csv('data/labels/train_2019.csv')
 train_2019.head()
 ```
-
-
-
 
 <div>
 
@@ -211,9 +194,6 @@ train_2019.head()
 </table>
 </div>
 
-
-
-
 ```python
 test_2015_clean  = test_2015.rename(columns={'image': 'id_code', 'level': 'diagnosis'})[['id_code', 'diagnosis']]
 train_2015_clean = train_2015.rename(columns={'image': 'id_code', 'level': 'diagnosis'})[['id_code', 'diagnosis']]
@@ -224,9 +204,6 @@ df.to_csv('data/labels/all.csv', index=False)
 
 df.head()
 ```
-
-
-
 
 <div>
 
@@ -268,12 +245,9 @@ df.head()
 </table>
 </div>
 
-
-
 ## 5.2 Оценка качества разметки
 
 ### 5.2.1 Проверка соответствия снимков и разметки
-
 
 ```python
 image_dir = 'data/raw_images'
@@ -300,13 +274,11 @@ if no_image:
     Снимков без разметки:   0
     Разметка без снимка:    0
 
-
 **Вывод:** Все снимки на диске имеют соответствующую запись в разметке и наоборот. Датасет полностью согласован.
 
 ---
 
 ### 5.2.2 Проверка дубликатов
-
 
 ```python
 dup_ids = df[df.duplicated(subset='id_code', keep=False)].sort_values('id_code')
@@ -327,7 +299,6 @@ if not conflicts.empty:
       — точные дубликаты (id + разметка совпадают): 0
       — конфликтующие метки (один id, разные разметки): 0
 
-
 **Вывод:** Дубликатов не обнаружено. Разметка технически консистентна.
 
 ---
@@ -341,7 +312,6 @@ if not conflicts.empty:
 ## 5.3 EDA
 
 ### 5.3.1 Несколько снимков одного пациента
-
 
 ```python
 # В DR 2015 id_code выглядит как "10_left" / "10_right" — один пациент, два снимка
@@ -358,13 +328,11 @@ print(f'Из них — с снимками левого и правого гл�
     Пациентов в DR 2015: 44351
     Из них — с снимками левого и правого глаза: 44351 (100.0%)
 
-
 **Вывод:** Все пациенты в DR Detection 2015 представлены двумя снимками — левым и правым глазом. Снимки одного пациента визуально похожи: одинаковое качество съемки, схожее состояние сетчатки. Если при разбивке не учитывать это и делить по снимкам, а не по пациентам, один и тот же пациент может попасть одновременно в train и test/validation. Модель будет «видеть» похожие снимки при обучении и при оценке. Это классический пример **утечки данных (data leakage)**, ведущей к переобучению. Чтобы ее исключить, разбивку необходимо делать по пациентам: все снимки одного пациента попадают только в одну из выборок.
 
 ---
 
 ### 5.3.2 Распределение классов
-
 
 ```python
 def find_image(directory, id_code):
@@ -374,7 +342,6 @@ def find_image(directory, id_code):
             return path
     raise FileNotFoundError(f'No image found for {id_code} in {directory}')
 ```
-
 
 ```python
 n_samples = 3
@@ -400,12 +367,9 @@ plt.tight_layout()
 plt.show()
 ```
 
-
     
 ![png](data/notebooks/Lesson5/Lesson5_15_0.png)
     
-
-
 
 ```python
 counts = df['diagnosis'].value_counts().sort_index()
@@ -430,18 +394,15 @@ plt.tight_layout()
 plt.show()
 ```
 
-
     
 ![png](data/notebooks/Lesson5/Lesson5_16_0.png)
     
-
 
 **Вывод:** Классы распределены неравномерно — на класс No DR приходится 72.7% всех снимков, тогда как доля некоторых других классов опускается ниже 3%. При оценке модели следует выбирать метрики, устойчивые к дисбалансу классов; при разбивке на выборки (train/val/test) — применять стратификацию.
 
 ---
 
 ### 5.3.3 Разрешение и aspect ratio
-
 
 ```python
 sizes = []
@@ -474,16 +435,9 @@ plt.tight_layout()
 plt.show()
 ```
 
-
-    Чтение размеров:   0%|          | 0/92364 [00:00<?, ?it/s]
-
-
-
     
 ![png](data/notebooks/Lesson5/Lesson5_18_1.png)
     
-
-
 
 ```python
 small = sizes_df[(sizes_df['width'] < 224) | (sizes_df['height'] < 224)]
@@ -493,8 +447,6 @@ print(f'Снимков с разрешением меньше 224×224: {len(sma
 ```
 
     Снимков с разрешением меньше 224×224: 2
-
-
 
 ```python
 def simplify_ratio(w, h):
@@ -525,18 +477,15 @@ plt.tight_layout()
 plt.show()
 ```
 
-
     
 ![png](data/notebooks/Lesson5/Lesson5_20_0.png)
     
-
 
 **Вывод:** Снимки имеют разные разрешения и aspect ratio, большинство — прямоугольные. Для обучения моделей необходимо привести все изображения к единому разрешению 224×224. Чтобы не искажать пропорции, используем паддинг: сначала обрезаем черный фон по контуру глаза, затем дополняем черными полями до квадрата и только потом ресайзим. 2 снимка с разрешением меньше 224×224 будут исключены из выборки.
 
 ---
 
 ### 5.3.4 Яркость и резкость
-
 
 ```python
 path_map = {p.stem: str(p) for p in Path(image_dir).iterdir()}
@@ -559,11 +508,6 @@ quality_df = df.copy()
 quality_df['brightness'] = brightness
 quality_df['blur']       = blur_scores
 ```
-
-
-    Анализ снимков:   0%|          | 0/92364 [00:00<?, ?it/s]
-
-
 
 ```python
 p10 = np.percentile(brightness, 10)
@@ -590,19 +534,13 @@ plt.tight_layout()
 plt.show()
 ```
 
-
     
 ![png](data/notebooks/Lesson5/Lesson5_23_0.png)
     
 
-
-
 ```python
 quality_df[['brightness','blur']].describe(percentiles=[.01,.05,.95,.99])
 ```
-
-
-
 
 <div>
 
@@ -664,9 +602,6 @@ quality_df[['brightness','blur']].describe(percentiles=[.01,.05,.95,.99])
 </table>
 </div>
 
-
-
-
 ```python
 n = 5
 percentile_groups = [
@@ -702,12 +637,9 @@ plt.tight_layout()
 plt.show()
 ```
 
-
     
 ![png](data/notebooks/Lesson5/Lesson5_25_0.png)
     
-
-
 
 ```python
 n = 5
@@ -743,11 +675,9 @@ plt.tight_layout()
 plt.show()
 ```
 
-
     
 ![png](data/notebooks/Lesson5/Lesson5_26_0.png)
     
-
 
 **Вывод:** Измерены две метрики фотометрического качества: **яркость** (средняя интенсивность пикселей FOV) и **резкость** (дисперсия лапласиана). Оба показателя имеют широкий разброс: среди снимков есть экстремально темные (недоэкспонированные) и экстремально светлые (переэкспонированные), а также выражено размытые.
 
@@ -765,7 +695,6 @@ plt.show()
 
 #### Блики
 
-
 ```python
 img = Image.open(find_image(image_dir, '44_right')).convert('RGB')
 img.thumbnail((224, 224), Image.Resampling.LANCZOS)
@@ -776,16 +705,13 @@ plt.tight_layout()
 plt.show()
 ```
 
-
     
 ![png](data/notebooks/Lesson5/Lesson5_29_0.png)
     
 
-
 ---
 
 #### Смещение
-
 
 ```python
 img = Image.open(find_image(image_dir, '59ee65760535')).convert('RGB')
@@ -797,16 +723,13 @@ plt.tight_layout()
 plt.show()
 ```
 
-
     
 ![png](data/notebooks/Lesson5/Lesson5_31_0.png)
     
 
-
 ---
 
 #### Пятна на объективе
-
 
 ```python
 img = Image.open(find_image(image_dir, '1695_left')).convert('RGB')
@@ -818,11 +741,9 @@ plt.tight_layout()
 plt.show()
 ```
 
-
     
 ![png](data/notebooks/Lesson5/Lesson5_33_0.png)
     
-
 
 **Вывод:** В датасете присутствуют три типа визуальных артефактов: **блики** (отражение вспышки, маскирующее центральные структуры), **смещение** (камера захватила глазное дно со сдвигом, часть анатомических структур вышла за границу кадра) и **пятна на объективе** (загрязнения линзы, одинаково проявляющиеся на снимках одного устройства). Автоматически обнаружить такие артефакты затруднительно, а ручная фильтрация при объеме в 92 000 снимков нецелесообразна — поэтому все снимки остаются в датасете. В перспективе можно попробовать разработать детектор артефактов и проверить, улучшит ли фильтрация качество модели.
 
@@ -831,7 +752,6 @@ plt.show()
 ## 5.4 Предобработка данных
 
 ### 5.4.1 Фильтрация снимков с разрешением меньше 224×224
-
 
 ```python
 n_before = len(df)
@@ -849,9 +769,7 @@ print(f'Удалено: {n_before - len(df)} снимков с разрешен�
     Снимков после фильтрации: 92362
     Удалено: 2 снимков с разрешением < 224×224
 
-
 ### 5.4.2 Фильтрация снимков по яркости и резкости
-
 
 ```python
 n_before = len(df)
@@ -872,9 +790,7 @@ print(f'Удалено: {n_before - len(df)} снимков по критери�
     Снимков после фильтрации: 91953
     Удалено: 409 снимков по критериям яркости/резкости
 
-
 ### 5.4.3 Ресайз снимков до разрешения 224×224 с сохранением aspect ratio
-
 
 ```python
 def preprocess(path, desired_size=224, return_steps=False):
@@ -913,7 +829,6 @@ def preprocess(path, desired_size=224, return_steps=False):
 
     return img
 
-
 sample_path = path_map[df.iloc[0]['id_code']]
 _, steps = preprocess(sample_path, return_steps=True)
 
@@ -928,12 +843,9 @@ plt.tight_layout()
 plt.show()
 ```
 
-
     
 ![png](data/notebooks/Lesson5/Lesson5_40_0.png)
     
-
-
 
 ```python
 processed_dir = 'data/processed_images'
@@ -957,20 +869,14 @@ else:
     print(f'\nВсе снимки имеют разрешение {224}×{224} ✓')
 ```
 
-
-    Предобработка:   0%|          | 0/91953 [00:00<?, ?it/s]
-
-
     Снимков в папке:   91953
     Снимков в разметке: 91953
     
     Все снимки имеют разрешение 224×224 ✓
 
-
 ### 5.4.4 Разбиение датасета на train/test
 
 Датасет разбивается в соотношении **80/20** по пациентам — все снимки одного пациента попадают только в одну из выборок, чтобы исключить утечку данных. Стратификация по `diagnosis` сохраняется в рамках группового разбиения. Тестовая выборка используется для финальной оценки качества обученных моделей.
-
 
 ```python
 # Для DR 2015: "10_left" → patient_id="10". Для APTOS 2019: хэш без суффикса → остаётся как есть
@@ -1012,13 +918,11 @@ print(pd.DataFrame({
     3       1828      2.5    429     2.3
     4       1754      2.4    432     2.3
 
-
 ### 5.4.5 Разбиение train на фолды (кросс-валидация)
 
 Тренировочная выборка разбивается на **5 фолдов** по пациентам — пациенты из одного фолда не пересекаются с другими. Стратификация по `diagnosis` сохраняет распределение классов в каждом фолде. Каждая итерация кросс-валидации использует 4 фолда для обучения модели и 1 для оценки ее качества.
 
 *Примечание:* в дальнейшем данный подход может быть пересмотрен, вплоть до использования всей тренировочной выборки для обучения финальной модели.
-
 
 ```python
 sgkf = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=42)
@@ -1044,14 +948,9 @@ print(f'\nИтого: {fold_sizes.sum()} снимков, {len(fold_sizes)} фо�
     
     Итого: 73550 снимков, 5 фолдов
 
-
-
 ```python
 train_df.head()
 ```
-
-
-
 
 <div>
 
@@ -1105,44 +1004,14 @@ train_df.head()
 </table>
 </div>
 
-
-
 ### 5.4.6 Версионирование данных с DVC
 
 Обработанные снимки и разметка добавляются в DVC
-
 
 ```python
 !dvc add data/labels/train.csv data/labels/test.csv
 ```
 
-    /bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
-    [?25l[32m⠋[0m Checking graph
-      0% Adding...|              | data/labels/train.csv |0/2 [00:00<?,     ?file/s]
-    ![A
-    Collecting files and computing hashes in data/labels/train.csv |0.00 [00:00,    [A
-                                                                                    [A
-    ![A
-      0% Checking cache in '/home/sskrk/PycharmProjects/eye-ai/.dvc/cache/files/md5'[A
-                                                                                    [A
-    ![A
-      0%|          |Adding data/labels/train.csv to cache 0/1 [00:00<?,     ?file/s][A
-                                                                                    [A
-    ![A
-      0%|          |Checking out /home/sskrk/PycharmProjec0/1 [00:00<?,    ?files/s][A
-      0% Adding...|               | data/labels/test.csv |0/2 [00:00<?,     ?file/s][A
-    ![A
-    Collecting files and computing hashes in data/labels/test.csv |0.00 [00:00,     [A
-                                                                                    [A
-    ![A
-      0% Checking cache in '/home/sskrk/PycharmProjects/eye-ai/.dvc/cache/files/md5'[A
-                                                                                    [A
-    ![A
-      0%|          |Adding data/labels/test.csv to cache  0/1 [00:00<?,     ?file/s][A
-                                                                                    [A
-    ![A
-      0%|          |Checking out /home/sskrk/PycharmProjec0/1 [00:00<?,    ?files/s][A
-    100% Adding...|████████████████████████████████████████|2/2 [00:00, 50.30file/s][A
     
     To track the changes with git, run:
     
@@ -1151,249 +1020,11 @@ train_df.head()
     To enable auto staging, run:
     
     	dvc config core.autostage true
-    [0m
-
 
 ```python
 !dvc add data/processed_images
 ```
 
-    /bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
-    [?25l[32m⠋[0m Checking graph
-    Adding...                                                                       
-    ![A
-    Collecting files and computing hashes in data/processed_images |0.00 [00:00,    [A
-    Collecting files and computing hashes in data/processed_images |0.00 [00:00,    [A
-    Collecting files and computing hashes in data/processed_images |0.00 [00:00,    [A
-    Collecting files and computing hashes in data/processed_images |1.01k [00:00, 10[A
-    Collecting files and computing hashes in data/processed_images |2.08k [00:00, 10[A
-    Collecting files and computing hashes in data/processed_images |3.14k [00:00, 10[A
-    Collecting files and computing hashes in data/processed_images |4.22k [00:01, 10[A
-    Collecting files and computing hashes in data/processed_images |5.26k [00:01, 10[A
-    Collecting files and computing hashes in data/processed_images |6.30k [00:01, 10[A
-    Collecting files and computing hashes in data/processed_images |7.38k [00:01, 10[A
-    Collecting files and computing hashes in data/processed_images |8.39k [00:01, 10[A
-    Collecting files and computing hashes in data/processed_images |9.40k [00:01, 10[A
-    Collecting files and computing hashes in data/processed_images |10.4k [00:01, 10[A
-    Collecting files and computing hashes in data/processed_images |11.4k [00:01, 10[A
-    Collecting files and computing hashes in data/processed_images |12.4k [00:01, 9.[A
-    Collecting files and computing hashes in data/processed_images |13.5k [00:01, 9.[A
-    Collecting files and computing hashes in data/processed_images |14.5k [00:02, 9.[A
-    Collecting files and computing hashes in data/processed_images |15.6k [00:02, 9.[A
-    Collecting files and computing hashes in data/processed_images |16.7k [00:02, 10[A
-    Collecting files and computing hashes in data/processed_images |17.7k [00:02, 10[A
-    Collecting files and computing hashes in data/processed_images |18.8k [00:02, 10[A
-    Collecting files and computing hashes in data/processed_images |19.9k [00:02, 10[A
-    Collecting files and computing hashes in data/processed_images |20.9k [00:02, 10[A
-    Collecting files and computing hashes in data/processed_images |22.0k [00:02, 10[A
-    Collecting files and computing hashes in data/processed_images |23.0k [00:02, 10[A
-    Collecting files and computing hashes in data/processed_images |24.0k [00:02, 10[A
-    Collecting files and computing hashes in data/processed_images |25.1k [00:03, 10[A
-    Collecting files and computing hashes in data/processed_images |26.1k [00:03, 10[A
-    Collecting files and computing hashes in data/processed_images |27.2k [00:03, 10[A
-    Collecting files and computing hashes in data/processed_images |28.2k [00:03, 10[A
-    Collecting files and computing hashes in data/processed_images |29.3k [00:03, 10[A
-    Collecting files and computing hashes in data/processed_images |30.4k [00:03, 10[A
-    Collecting files and computing hashes in data/processed_images |31.4k [00:03, 10[A
-    Collecting files and computing hashes in data/processed_images |32.5k [00:03, 10[A
-    Collecting files and computing hashes in data/processed_images |33.5k [00:03, 10[A
-    Collecting files and computing hashes in data/processed_images |34.5k [00:04, 10[A
-    Collecting files and computing hashes in data/processed_images |35.6k [00:04, 10[A
-    Collecting files and computing hashes in data/processed_images |36.7k [00:04, 10[A
-    Collecting files and computing hashes in data/processed_images |37.7k [00:04, 10[A
-    Collecting files and computing hashes in data/processed_images |38.8k [00:04, 10[A
-    Collecting files and computing hashes in data/processed_images |39.9k [00:04, 10[A
-    Collecting files and computing hashes in data/processed_images |41.0k [00:04, 10[A
-    Collecting files and computing hashes in data/processed_images |42.0k [00:04, 10[A
-    Collecting files and computing hashes in data/processed_images |43.1k [00:04, 10[A
-    Collecting files and computing hashes in data/processed_images |44.1k [00:04, 10[A
-    Collecting files and computing hashes in data/processed_images |45.2k [00:05, 8.[A
-    Collecting files and computing hashes in data/processed_images |46.2k [00:05, 9.[A
-    Collecting files and computing hashes in data/processed_images |47.3k [00:05, 9.[A
-    Collecting files and computing hashes in data/processed_images |48.3k [00:05, 9.[A
-    Collecting files and computing hashes in data/processed_images |49.4k [00:05, 10[A
-    Collecting files and computing hashes in data/processed_images |50.4k [00:05, 10[A
-    Collecting files and computing hashes in data/processed_images |51.5k [00:05, 10[A
-    Collecting files and computing hashes in data/processed_images |52.5k [00:05, 10[A
-    Collecting files and computing hashes in data/processed_images |53.6k [00:05, 10[A
-    Collecting files and computing hashes in data/processed_images |54.7k [00:05, 10[A
-    Collecting files and computing hashes in data/processed_images |55.7k [00:06, 10[A
-    Collecting files and computing hashes in data/processed_images |56.8k [00:06, 10[A
-    Collecting files and computing hashes in data/processed_images |57.9k [00:06, 10[A
-    Collecting files and computing hashes in data/processed_images |59.0k [00:06, 10[A
-    Collecting files and computing hashes in data/processed_images |60.0k [00:06, 10[A
-    Collecting files and computing hashes in data/processed_images |61.1k [00:06, 10[A
-    Collecting files and computing hashes in data/processed_images |62.2k [00:06, 10[A
-    Collecting files and computing hashes in data/processed_images |63.3k [00:06, 10[A
-    Collecting files and computing hashes in data/processed_images |64.4k [00:06, 10[A
-    Collecting files and computing hashes in data/processed_images |65.4k [00:06, 10[A
-    Collecting files and computing hashes in data/processed_images |66.6k [00:07, 10[A
-    Collecting files and computing hashes in data/processed_images |67.6k [00:07, 10[A
-    Collecting files and computing hashes in data/processed_images |68.7k [00:07, 10[A
-    Collecting files and computing hashes in data/processed_images |69.8k [00:07, 10[A
-    Collecting files and computing hashes in data/processed_images |70.9k [00:07, 10[A
-    Collecting files and computing hashes in data/processed_images |72.0k [00:07, 10[A
-    Collecting files and computing hashes in data/processed_images |73.1k [00:07, 10[A
-    Collecting files and computing hashes in data/processed_images |74.2k [00:07, 10[A
-    Collecting files and computing hashes in data/processed_images |75.3k [00:07, 10[A
-    Collecting files and computing hashes in data/processed_images |76.4k [00:08, 10[A
-    Collecting files and computing hashes in data/processed_images |77.5k [00:08, 10[A
-    Collecting files and computing hashes in data/processed_images |78.5k [00:08, 10[A
-    Collecting files and computing hashes in data/processed_images |79.6k [00:08, 10[A
-    Collecting files and computing hashes in data/processed_images |80.7k [00:08, 10[A
-    Collecting files and computing hashes in data/processed_images |81.7k [00:08, 10[A
-    Collecting files and computing hashes in data/processed_images |82.8k [00:08, 10[A
-    Collecting files and computing hashes in data/processed_images |83.9k [00:08, 10[A
-    Collecting files and computing hashes in data/processed_images |85.0k [00:08, 10[A
-    Collecting files and computing hashes in data/processed_images |86.1k [00:08, 10[A
-    Collecting files and computing hashes in data/processed_images |87.1k [00:09, 10[A
-    Collecting files and computing hashes in data/processed_images |88.2k [00:09, 8.[A
-    Collecting files and computing hashes in data/processed_images |89.3k [00:09, 9.[A
-    Collecting files and computing hashes in data/processed_images |90.3k [00:09, 9.[A
-    Collecting files and computing hashes in data/processed_images |91.4k [00:09, 9.[A
-                                                                                    [A
-    ![A
-      0% Checking cache in '/home/sskrk/PycharmProjects/eye-ai/.dvc/cache/files/md5'[A
-     25% Querying cache in '/home/sskrk/PycharmProjects/eye-ai/.dvc/cache/files/md5'[A
-     50% Querying cache in '/home/sskrk/PycharmProjects/eye-ai/.dvc/cache/files/md5'[A
-     76% Querying cache in '/home/sskrk/PycharmProjects/eye-ai/.dvc/cache/files/md5'[A
-                                                                                    [A
-    ![A
-      0%|          |Adding data/processed_images to0.00/91.8k [00:00<?,     ?file/s][A
-      0%|          |Adding data/processed_images to0.00/91.8k [00:00<?,     ?file/s][A
-      1%|          |Adding data/processed_images729/91.8k [00:00<00:12, 7.29kfile/s][A
-      2%|▏         |Adding data/processed_imag1.73k/91.8k [00:00<00:10, 8.87kfile/s][A
-      3%|▎         |Adding data/processed_imag2.75k/91.8k [00:00<00:09, 9.49kfile/s][A
-      4%|▍         |Adding data/processed_imag3.77k/91.8k [00:00<00:09, 9.75kfile/s][A
-      5%|▌         |Adding data/processed_imag4.70k/91.8k [00:00<00:09, 9.59kfile/s][A
-      6%|▌         |Adding data/processed_imag5.66k/91.8k [00:00<00:08, 9.61kfile/s][A
-      7%|▋         |Adding data/processed_imag6.66k/91.8k [00:00<00:08, 9.74kfile/s][A
-      8%|▊         |Adding data/processed_imag7.68k/91.8k [00:00<00:08, 9.88kfile/s][A
-      9%|▉         |Adding data/processed_imag8.65k/91.8k [00:01<00:09, 8.98kfile/s][A
-     11%|█         |Adding data/processed_imag9.67k/91.8k [00:01<00:08, 9.32kfile/s][A
-     12%|█▏        |Adding data/processed_imag10.6k/91.8k [00:01<00:08, 9.38kfile/s][A
-     13%|█▎        |Adding data/processed_imag11.6k/91.8k [00:01<00:08, 9.47kfile/s][A
-     14%|█▎        |Adding data/processed_imag12.6k/91.8k [00:01<00:08, 9.69kfile/s][A
-     15%|█▍        |Adding data/processed_imag13.6k/91.8k [00:01<00:07, 9.82kfile/s][A
-     16%|█▌        |Adding data/processed_imag14.6k/91.8k [00:01<00:07, 9.77kfile/s][A
-     17%|█▋        |Adding data/processed_imag15.6k/91.8k [00:01<00:07, 9.74kfile/s][A
-     18%|█▊        |Adding data/processed_imag16.6k/91.8k [00:01<00:07, 9.78kfile/s][A
-     19%|█▉        |Adding data/processed_imag17.6k/91.8k [00:01<00:07, 9.95kfile/s][A
-     20%|██        |Adding data/processed_imag18.6k/91.8k [00:02<00:07, 9.83kfile/s][A
-     21%|██▏       |Adding data/processed_imag19.6k/91.8k [00:02<00:07, 9.89kfile/s][A
-     22%|██▏       |Adding data/processed_imag20.7k/91.8k [00:02<00:07, 10.0kfile/s][A
-     24%|██▎       |Adding data/processed_imag21.7k/91.8k [00:02<00:06, 10.2kfile/s][A
-     25%|██▍       |Adding data/processed_imag22.8k/91.8k [00:02<00:06, 10.3kfile/s][A
-     26%|██▌       |Adding data/processed_imag23.8k/91.8k [00:02<00:06, 9.81kfile/s][A
-     27%|██▋       |Adding data/processed_imag24.8k/91.8k [00:02<00:06, 9.72kfile/s][A
-     28%|██▊       |Adding data/processed_imag25.8k/91.8k [00:02<00:06, 9.77kfile/s][A
-     29%|██▉       |Adding data/processed_imag26.8k/91.8k [00:02<00:06, 9.90kfile/s][A
-     30%|███       |Adding data/processed_imag27.8k/91.8k [00:03<00:06, 10.0kfile/s][A
-     31%|███▏      |Adding data/processed_imag28.8k/91.8k [00:03<00:06, 9.83kfile/s][A
-     32%|███▏      |Adding data/processed_imag29.8k/91.8k [00:03<00:06, 9.88kfile/s][A
-     34%|███▎      |Adding data/processed_imag30.8k/91.8k [00:03<00:06, 9.85kfile/s][A
-     35%|███▍      |Adding data/processed_imag31.8k/91.8k [00:03<00:06, 9.78kfile/s][A
-     36%|███▌      |Adding data/processed_imag32.8k/91.8k [00:03<00:05, 9.86kfile/s][A
-     37%|███▋      |Adding data/processed_imag33.8k/91.8k [00:03<00:05, 9.87kfile/s][A
-     38%|███▊      |Adding data/processed_imag34.8k/91.8k [00:03<00:06, 9.48kfile/s][A
-     39%|███▉      |Adding data/processed_imag35.7k/91.8k [00:03<00:06, 9.22kfile/s][A
-     40%|███▉      |Adding data/processed_imag36.7k/91.8k [00:03<00:06, 9.14kfile/s][A
-     41%|████      |Adding data/processed_imag37.6k/91.8k [00:04<00:06, 8.74kfile/s][A
-     42%|████▏     |Adding data/processed_imag38.6k/91.8k [00:04<00:05, 9.07kfile/s][A
-     43%|████▎     |Adding data/processed_imag39.6k/91.8k [00:04<00:05, 9.30kfile/s][A
-     44%|████▍     |Adding data/processed_imag40.5k/91.8k [00:04<00:05, 9.30kfile/s][A
-     45%|████▌     |Adding data/processed_imag41.5k/91.8k [00:04<00:05, 9.62kfile/s][A
-     46%|████▋     |Adding data/processed_imag42.5k/91.8k [00:04<00:05, 9.62kfile/s][A
-     47%|████▋     |Adding data/processed_imag43.5k/91.8k [00:04<00:04, 9.70kfile/s][A
-     48%|████▊     |Adding data/processed_imag44.5k/91.8k [00:04<00:05, 9.29kfile/s][A
-     49%|████▉     |Adding data/processed_imag45.4k/91.8k [00:04<00:05, 9.09kfile/s][A
-     50%|█████     |Adding data/processed_imag46.3k/91.8k [00:04<00:04, 9.12kfile/s][A
-     51%|█████▏    |Adding data/processed_imag47.2k/91.8k [00:05<00:05, 8.58kfile/s][A
-     52%|█████▏    |Adding data/processed_imag48.1k/91.8k [00:05<00:05, 8.11kfile/s][A
-     53%|█████▎    |Adding data/processed_imag49.0k/91.8k [00:05<00:05, 8.25kfile/s][A
-     54%|█████▍    |Adding data/processed_imag49.8k/91.8k [00:05<00:05, 7.31kfile/s][A
-     55%|█████▌    |Adding data/processed_imag50.6k/91.8k [00:05<00:05, 7.42kfile/s][A
-     56%|█████▌    |Adding data/processed_imag51.3k/91.8k [00:05<00:05, 7.51kfile/s][A
-     57%|█████▋    |Adding data/processed_imag52.1k/91.8k [00:05<00:05, 7.02kfile/s][A
-     58%|█████▊    |Adding data/processed_imag52.8k/91.8k [00:05<00:05, 6.59kfile/s][A
-     58%|█████▊    |Adding data/processed_imag53.5k/91.8k [00:06<00:05, 6.74kfile/s][A
-     59%|█████▉    |Adding data/processed_imag54.3k/91.8k [00:06<00:05, 6.95kfile/s][A
-     60%|█████▉    |Adding data/processed_imag55.0k/91.8k [00:06<00:06, 6.10kfile/s][A
-     61%|██████    |Adding data/processed_imag55.7k/91.8k [00:06<00:05, 6.40kfile/s][A
-     61%|██████▏   |Adding data/processed_imag56.4k/91.8k [00:06<00:05, 6.54kfile/s][A
-     62%|██████▏   |Adding data/processed_imag57.1k/91.8k [00:06<00:05, 6.59kfile/s][A
-     63%|██████▎   |Adding data/processed_imag57.8k/91.8k [00:06<00:05, 5.83kfile/s][A
-     64%|██████▎   |Adding data/processed_imag58.4k/91.8k [00:06<00:05, 6.06kfile/s][A
-     64%|██████▍   |Adding data/processed_imag59.1k/91.8k [00:06<00:05, 6.38kfile/s][A
-     65%|██████▌   |Adding data/processed_imag59.8k/91.8k [00:07<00:04, 6.52kfile/s][A
-     66%|██████▌   |Adding data/processed_imag60.5k/91.8k [00:07<00:05, 5.67kfile/s][A
-     67%|██████▋   |Adding data/processed_imag61.2k/91.8k [00:07<00:05, 5.92kfile/s][A
-     67%|██████▋   |Adding data/processed_imag61.8k/91.8k [00:07<00:04, 6.03kfile/s][A
-     68%|██████▊   |Adding data/processed_imag62.5k/91.8k [00:07<00:04, 6.24kfile/s][A
-     69%|██████▊   |Adding data/processed_imag63.1k/91.8k [00:07<00:05, 5.24kfile/s][A
-     69%|██████▉   |Adding data/processed_imag63.7k/91.8k [00:07<00:05, 5.47kfile/s][A
-     70%|███████   |Adding data/processed_imag64.3k/91.8k [00:07<00:04, 5.65kfile/s][A
-     71%|███████   |Adding data/processed_imag65.0k/91.8k [00:07<00:04, 5.80kfile/s][A
-     71%|███████▏  |Adding data/processed_imag65.6k/91.8k [00:08<00:04, 5.88kfile/s][A
-     72%|███████▏  |Adding data/processed_imag66.2k/91.8k [00:08<00:05, 5.10kfile/s][A
-     73%|███████▎  |Adding data/processed_imag66.8k/91.8k [00:08<00:04, 5.30kfile/s][A
-     73%|███████▎  |Adding data/processed_imag67.3k/91.8k [00:08<00:04, 5.41kfile/s][A
-     74%|███████▍  |Adding data/processed_imag68.0k/91.8k [00:08<00:04, 5.68kfile/s][A
-     75%|███████▍  |Adding data/processed_imag68.6k/91.8k [00:08<00:04, 4.90kfile/s][A
-     75%|███████▌  |Adding data/processed_imag69.2k/91.8k [00:08<00:04, 5.21kfile/s][A
-     76%|███████▌  |Adding data/processed_imag69.7k/91.8k [00:08<00:04, 5.25kfile/s][A
-     77%|███████▋  |Adding data/processed_imag70.2k/91.8k [00:09<00:04, 4.90kfile/s][A
-     77%|███████▋  |Adding data/processed_imag70.8k/91.8k [00:09<00:04, 4.45kfile/s][A
-     78%|███████▊  |Adding data/processed_imag71.3k/91.8k [00:09<00:04, 4.72kfile/s][A
-     78%|███████▊  |Adding data/processed_imag71.9k/91.8k [00:09<00:04, 4.96kfile/s][A
-     79%|███████▉  |Adding data/processed_imag72.4k/91.8k [00:09<00:03, 4.95kfile/s][A
-     79%|███████▉  |Adding data/processed_imag72.9k/91.8k [00:09<00:04, 4.26kfile/s][A
-     80%|███████▉  |Adding data/processed_imag73.4k/91.8k [00:09<00:04, 4.50kfile/s][A
-     81%|████████  |Adding data/processed_imag73.9k/91.8k [00:09<00:03, 4.69kfile/s][A
-     81%|████████  |Adding data/processed_imag74.4k/91.8k [00:09<00:03, 4.76kfile/s][A
-     82%|████████▏ |Adding data/processed_imag74.9k/91.8k [00:10<00:03, 4.84kfile/s][A
-     82%|████████▏ |Adding data/processed_imag75.4k/91.8k [00:10<00:04, 3.99kfile/s][A
-     83%|████████▎ |Adding data/processed_imag75.9k/91.8k [00:10<00:03, 4.29kfile/s][A
-     83%|████████▎ |Adding data/processed_imag76.4k/91.8k [00:10<00:03, 4.51kfile/s][A
-     84%|████████▍ |Adding data/processed_imag76.9k/91.8k [00:10<00:03, 4.59kfile/s][A
-     84%|████████▍ |Adding data/processed_imag77.4k/91.8k [00:10<00:03, 4.61kfile/s][A
-     85%|████████▍ |Adding data/processed_imag77.9k/91.8k [00:10<00:03, 4.33kfile/s][A
-     85%|████████▌ |Adding data/processed_imag78.3k/91.8k [00:10<00:03, 4.10kfile/s][A
-     86%|████████▌ |Adding data/processed_imag78.8k/91.8k [00:10<00:02, 4.34kfile/s][A
-     86%|████████▋ |Adding data/processed_imag79.3k/91.8k [00:11<00:02, 4.47kfile/s][A
-     87%|████████▋ |Adding data/processed_imag79.8k/91.8k [00:11<00:02, 4.47kfile/s][A
-     87%|████████▋ |Adding data/processed_imag80.2k/91.8k [00:11<00:02, 4.53kfile/s][A
-     88%|████████▊ |Adding data/processed_imag80.7k/91.8k [00:11<00:02, 3.85kfile/s][A
-     88%|████████▊ |Adding data/processed_imag81.1k/91.8k [00:11<00:02, 4.06kfile/s][A
-     89%|████████▉ |Adding data/processed_imag81.6k/91.8k [00:11<00:02, 4.17kfile/s][A
-     89%|████████▉ |Adding data/processed_imag82.0k/91.8k [00:11<00:02, 4.25kfile/s][A
-     90%|████████▉ |Adding data/processed_imag82.5k/91.8k [00:11<00:02, 4.33kfile/s][A
-     90%|█████████ |Adding data/processed_imag82.9k/91.8k [00:11<00:02, 4.37kfile/s][A
-     91%|█████████ |Adding data/processed_imag83.4k/91.8k [00:12<00:02, 3.83kfile/s][A
-     91%|█████████ |Adding data/processed_imag83.8k/91.8k [00:12<00:02, 3.73kfile/s][A
-     92%|█████████▏|Adding data/processed_imag84.2k/91.8k [00:12<00:01, 3.86kfile/s][A
-     92%|█████████▏|Adding data/processed_imag84.6k/91.8k [00:12<00:01, 4.02kfile/s][A
-     93%|█████████▎|Adding data/processed_imag85.1k/91.8k [00:12<00:01, 4.13kfile/s][A
-     93%|█████████▎|Adding data/processed_imag85.5k/91.8k [00:12<00:01, 4.20kfile/s][A
-     94%|█████████▎|Adding data/processed_imag85.9k/91.8k [00:12<00:01, 4.14kfile/s][A
-     94%|█████████▍|Adding data/processed_imag86.4k/91.8k [00:12<00:01, 3.49kfile/s][A
-     95%|█████████▍|Adding data/processed_imag86.8k/91.8k [00:12<00:01, 3.68kfile/s][A
-     95%|█████████▍|Adding data/processed_imag87.2k/91.8k [00:13<00:01, 3.71kfile/s][A
-     95%|█████████▌|Adding data/processed_imag87.6k/91.8k [00:13<00:01, 3.80kfile/s][A
-     96%|█████████▌|Adding data/processed_imag88.0k/91.8k [00:13<00:00, 3.86kfile/s][A
-     96%|█████████▋|Adding data/processed_imag88.4k/91.8k [00:13<00:00, 3.91kfile/s][A
-     97%|█████████▋|Adding data/processed_imag88.8k/91.8k [00:13<00:00, 3.27kfile/s][A
-     97%|█████████▋|Adding data/processed_imag89.2k/91.8k [00:13<00:00, 3.37kfile/s][A
-     98%|█████████▊|Adding data/processed_imag89.5k/91.8k [00:13<00:00, 3.53kfile/s][A
-     98%|█████████▊|Adding data/processed_imag89.9k/91.8k [00:13<00:00, 3.64kfile/s][A
-     98%|█████████▊|Adding data/processed_imag90.4k/91.8k [00:13<00:00, 3.80kfile/s][A
-     99%|█████████▉|Adding data/processed_imag90.7k/91.8k [00:14<00:00, 3.74kfile/s][A
-     99%|█████████▉|Adding data/processed_imag91.1k/91.8k [00:14<00:00, 3.17kfile/s][A
-    100%|█████████▉|Adding data/processed_imag91.5k/91.8k [00:14<00:00, 3.29kfile/s][A
-                                                                                    [A
-    ![A
-    Checking out /home/sskrk/PycharmProjects/eye-ai/data/processed_images |0.00 [00:[A
-    100% Adding...|████████████████████████████████████████|1/1 [00:28, 28.59s/file][A
     
     To track the changes with git, run:
     
@@ -1402,57 +1033,22 @@ train_df.head()
     To enable auto staging, run:
     
     	dvc config core.autostage true
-    [0m
-
 
 ```python
 !dvc push
 ```
 
-    /bin/bash: warning: setlocale: LC_ALL: cannot change locale (en_US.UTF-8)
     Collecting                                          |92.0k [00:02, 31.3kentry/s]
     Pushing
-    ![A
-      0% Querying remote cache|                          |0/1 [00:00<?,    ?files/s][A
-    100% Querying remote cache|█████████████████████|1/1 [00:01<00:00,  1.05s/files][A
-                                                                                    [A
-    ![A
-      0% Querying remote cache|                          |0/0 [00:00<?,    ?files/s][A
-                                                                                    [A
-    ![A
-      0% Checking cache in 'a-shihov/files/md5'|         |0/? [00:00<?,    ?files/s][A
-      0% Estimating size of cache in 'a-shihov/files/md5'| |4096/? [00:00<00:00, 183[A
-                                                                                    [A
-    ![A
-      0% Checking cache in '/home/sskrk/PycharmProjects/eye-ai/.dvc/cache/files/md5'[A
-     27% Querying cache in '/home/sskrk/PycharmProjects/eye-ai/.dvc/cache/files/md5'[A
-     54% Querying cache in '/home/sskrk/PycharmProjects/eye-ai/.dvc/cache/files/md5'[A
-     81% Querying cache in '/home/sskrk/PycharmProjects/eye-ai/.dvc/cache/files/md5'[A
-                                                                                    [A
-    ![A
-      0%|          |Pushing to s3                         0/2 [00:00<?,     ?file/s][A
-      0%|          |Pushing to s3                         0/2 [00:00<?,     ?file/s][A
     
-    ![A[A
     
-      0%|          |/home/sskrk/PycharmProjects/eye-0.00/348k [00:00<?,        ?B/s][A[A
     
-    100%|██████████|/home/sskrk/PycharmProjects/348k/348k [00:01<00:00,     291kB/s][A[A
     
-                                                                                    [A[A
-     50%|█████     |Pushing to s3                     1/2 [00:01<00:01,  1.22s/file][A
     
-    ![A[A
     
-      0%|          |/home/sskrk/PycharmProjects/eye0.00/1.50M [00:00<?,        ?B/s][A[A
     
-    100%|██████████|/home/sskrk/PycharmProject1.50M/1.50M [00:04<00:00,     325kB/s][A[A
     
-                                                                                    [A[A
-    100%|██████████|Pushing to s3                     2/2 [00:06<00:00,  3.35s/file][A
-    Pushing                                                                         [A
     2 files pushed
-    [0m
 
 ## 5.5 Обучение baseline моделей
 
@@ -1484,7 +1080,6 @@ train_df.head()
 
 *Аугментация*: применяется только к тренировочной выборке.
 
-
 ```python
 import copy
 import os
@@ -1501,7 +1096,6 @@ import matplotlib.pyplot as plt
 import pandas as pd
 ```
 
-
 ```python
 # Дублируем некоторые функции, чтобы можно было запускать ячейки с этого места
 def find_image(directory, id_code):
@@ -1510,7 +1104,6 @@ def find_image(directory, id_code):
         if os.path.exists(path):
             return path
     raise FileNotFoundError(f'No image found for {id_code} in {directory}')
-
 
 class DRDataset(Dataset):
     def __init__(self, df, image_dir, transform=None):
@@ -1529,7 +1122,6 @@ class DRDataset(Dataset):
         return img, int(row['diagnosis'])
 ```
 
-
 ```python
 def make_train_transform(weights):
     aug = transforms.Compose([
@@ -1540,7 +1132,6 @@ def make_train_transform(weights):
         transforms.RandomApply([transforms.GaussianBlur(kernel_size=3)], p=0.5),
     ])
     return transforms.Compose([aug, weights.transforms()])
-
 
 def train_epoch(model, optimizer, loader, loss_fn):
     model.train()
@@ -1555,7 +1146,6 @@ def train_epoch(model, optimizer, loader, loss_fn):
         total_loss += loss.item()
     return total_loss / len(loader)
 
-
 @torch.inference_mode()
 def evaluate(model, loader, loss_fn):
     model.eval()
@@ -1566,7 +1156,6 @@ def evaluate(model, loader, loss_fn):
         total_loss += loss_fn(out, y).item()
     return total_loss / len(loader)
 
-
 def plot_stats(train_loss, valid_loss, title):
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.set_title(f'{title} — Loss')
@@ -1574,7 +1163,6 @@ def plot_stats(train_loss, valid_loss, title):
     ax.plot(valid_loss, label='Valid')
     ax.legend(); ax.grid()
     plt.tight_layout(); plt.show()
-
 
 def fit(model, optimizer, train_loader, valid_loader, max_epochs, title, loss_fn, early_stopping):
     train_losses, valid_losses = [], []
@@ -1603,7 +1191,6 @@ def fit(model, optimizer, train_loader, valid_loader, max_epochs, title, loss_fn
                 break
 
     model.load_state_dict(best_model_state)
-
 
 def train_cv(
         name,
@@ -1648,7 +1235,6 @@ def train_cv(
         print(f"Сохранено: {path}")
 ```
 
-
 ```python
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 loss_fn = nn.CrossEntropyLoss()
@@ -1656,8 +1242,6 @@ print(f"Device: {device}")
 ```
 
     Device: cuda:0
-
-
 
 ```python
 train_df_path = 'data/labels/train.csv'
@@ -1670,7 +1254,6 @@ early_stopping = 3
 ```
 
 ### 5.5.1 VGG-19
-
 
 ```python
 vgg_weights = VGG19_Weights.DEFAULT
@@ -1716,19 +1299,15 @@ train_cv(
 )
 ```
 
-
     
 ![png](data/notebooks/Lesson5/Lesson5_59_0.png)
     
-
 
     Epoch 12/20 | Train Loss 0.7508 | Valid Loss 0.7226
     Early stopping на эпохе 12 (val loss не улучшался 3 эпох)
     Сохранено: /kaggle/working/models/vgg19_fold0.pth
 
-
 ### 5.5.2 ResNet-50
-
 
 ```python
 resnet_weights = ResNet50_Weights.DEFAULT
@@ -1771,19 +1350,15 @@ train_cv(
 )
 ```
 
-
     
 ![png](data/notebooks/Lesson5/Lesson5_61_0.png)
     
-
 
     Epoch 6/20 | Train Loss 0.6732 | Valid Loss 0.6790
     Early stopping на эпохе 6 (val loss не улучшался 3 эпох)
     Сохранено: /kaggle/working/models/resnet50_fold0.pth
 
-
 ### 5.5.3 Swin-Tiny
-
 
 ```python
 swin_weights = Swin_T_Weights.DEFAULT
@@ -1828,26 +1403,21 @@ train_cv(
 )
 ```
 
-
     
 ![png](data/notebooks/Lesson5/Lesson5_63_0.png)
     
-
 
     Epoch 15/20 | Train Loss 0.6738 | Valid Loss 0.6726
     Early stopping на эпохе 15 (val loss не улучшался 3 эпох)
     Сохранено: /kaggle/working/models/swint_fold0.pth
 
-
 ### 5.5.4 Версионирование baseline моделей с DVC
 
 Обученные чекпоинты добавляются в DVC
 
-
 ```python
 !dvc add models/
 ```
-
 
 ```python
 !dvc push
@@ -1864,7 +1434,6 @@ train_cv(
 | **Precision** (macro) | Доля верно предсказанных примеров среди всех предсказанных для данного класса; macro-среднее по классам                  |
 | **Recall** (macro) | Доля верно найденных примеров среди всех реальных примеров класса; macro-среднее по классам                              |
 | **F1** (macro) | Гармоническое среднее Precision и Recall; macro-среднее по классам                                                       |
-
 
 ```python
 import os
@@ -1885,7 +1454,6 @@ from sklearn.metrics import (
 )
 ```
 
-
 ```python
 # Дублируем некоторые функции, чтобы можно было запускать ячейки с этого места
 def find_image(directory, id_code):
@@ -1894,7 +1462,6 @@ def find_image(directory, id_code):
         if os.path.exists(path):
             return path
     raise FileNotFoundError(f'No image found for {id_code} in {directory}')
-
 
 class DRDataset(torch.utils.data.Dataset):
     def __init__(self, df, image_dir, transform=None):
@@ -1912,7 +1479,6 @@ class DRDataset(torch.utils.data.Dataset):
             img = self.transform(img)
         return img, int(row['diagnosis'])
 ```
-
 
 ```python
 def _make_vgg19():
@@ -1940,7 +1506,6 @@ model_registry = [
 ]
 ```
 
-
 ```python
 train_df_path = 'data/labels/train.csv'
 test_df_path = 'data/labels/test.csv'
@@ -1952,8 +1517,6 @@ print(f'Device: {device}')
 ```
 
     Device: cuda:0
-
-
 
 ```python
 @torch.inference_mode()
@@ -1973,7 +1536,6 @@ def get_predictions(model, loader, desc='Inference'):
     print(f'  [{desc}] samples processed: {len(preds_out)}')
     return probs_out, preds_out, labels_out
 
-
 def compute_metrics(y_true, y_pred, y_probs):
     return {
         'QWK':       cohen_kappa_score(y_true, y_pred, weights='quadratic'),
@@ -1983,7 +1545,6 @@ def compute_metrics(y_true, y_pred, y_probs):
         'F1':        f1_score(y_true, y_pred, average='macro', zero_division=0),
     }
 ```
-
 
 ```python
 train_df_full = pd.read_csv(train_df_path)
@@ -2031,15 +1592,11 @@ for name, fname, model_fn in model_registry:
     VGG-19
     ========================================
 
-
     VGG-19 val: 100%|██████████| 230/230 [01:30<00:00,  2.54it/s]
-
 
       [VGG-19 val] samples processed: 14710
 
-
     VGG-19 test: 100%|██████████| 288/288 [02:07<00:00,  2.26it/s]
-
 
       [VGG-19 test] samples processed: 18403
       QWK  val=0.4598  test=0.4539
@@ -2049,15 +1606,11 @@ for name, fname, model_fn in model_registry:
     ResNet-50
     ========================================
 
-
     ResNet-50 val: 100%|██████████| 230/230 [00:51<00:00,  4.49it/s]
-
 
       [ResNet-50 val] samples processed: 14710
 
-
     ResNet-50 test: 100%|██████████| 288/288 [01:04<00:00,  4.48it/s]
-
 
       [ResNet-50 test] samples processed: 18403
       QWK  val=0.5983  test=0.5821
@@ -2067,12 +1620,9 @@ for name, fname, model_fn in model_registry:
     Swin-T
     ========================================
 
-
     Swin-T val: 100%|██████████| 230/230 [01:19<00:00,  2.88it/s]
 
-
       [Swin-T val] samples processed: 14710
-
 
     Swin-T test: 100%|██████████| 288/288 [01:39<00:00,  2.90it/s]
 
@@ -2080,10 +1630,7 @@ for name, fname, model_fn in model_registry:
       QWK  val=0.6070  test=0.5864
       AUC  val=0.8354  test=0.8280
 
-
     
-
-
 
 ```python
 metric_cols = ['QWK', 'AUC', 'Precision', 'Recall', 'F1']
@@ -2125,12 +1672,9 @@ plt.tight_layout()
 plt.show()
 ```
 
-
     
 ![png](data/notebooks/Lesson5/Lesson5_74_0.png)
     
-
-
 
 ```python
 class_labels = {0: 'No DR', 1: 'Mild', 2: 'Moderate', 3: 'Severe', 4: 'Proliferative'}
@@ -2148,14 +1692,11 @@ plt.tight_layout()
 plt.show()
 ```
 
-
     
 ![png](data/notebooks/Lesson5/Lesson5_75_0.png)
     
 
-
 **Вывод:** Лучший результат среди baseline моделей показал Swin-T (QWK=0.5864), незначительно опережая ResNet-50 (QWK=0.5821). VGG-19 заметно отстаёт (QWK=0.4539). Все три модели обучены без оптимизаций, поэтому текущие результаты следует рассматривать как нижнюю оценку достижимого качества.
-
 
 ---
 
