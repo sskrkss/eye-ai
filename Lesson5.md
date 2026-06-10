@@ -1020,8 +1020,6 @@ train_df.head()
 !dvc push
 ```
 
-    2 files pushed
-
 ## 5.5 Обучение baseline моделей
 
 Для обучения baseline моделей выбраны три архитектуры:
