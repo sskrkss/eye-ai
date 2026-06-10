@@ -1012,42 +1012,14 @@ train_df.head()
 !dvc add data/labels/train.csv data/labels/test.csv
 ```
 
-    
-    To track the changes with git, run:
-    
-    	git add data/labels/train.csv.dvc data/labels/test.csv.dvc
-    
-    To enable auto staging, run:
-    
-    	dvc config core.autostage true
-
 ```python
 !dvc add data/processed_images
 ```
-
-    
-    To track the changes with git, run:
-    
-    	git add data/processed_images.dvc
-    
-    To enable auto staging, run:
-    
-    	dvc config core.autostage true
 
 ```python
 !dvc push
 ```
 
-    Collecting                                          |92.0k [00:02, 31.3kentry/s]
-    Pushing
-    
-    
-    
-    
-    
-    
-    
-    
     2 files pushed
 
 ## 5.5 Обучение baseline моделей
