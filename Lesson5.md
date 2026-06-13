@@ -1221,42 +1221,14 @@ print(f"Device: {device}")
 
 
 ```python
-train_df_path = '/root/.cache/kagglehub/datasets/sskrkss/dr-dataset-processed-images/versions/3/train.csv'
-test_df_path  = '/root/.cache/kagglehub/datasets/sskrkss/dr-dataset-processed-images/versions/3/test.csv'
-images_dir    = '/root/.cache/kagglehub/datasets/sskrkss/dr-dataset-processed-images/versions/3/processed_images/processed_images'
-models_dir    = '/content'
+train_df_path = 'data/labels/train.csv'
+test_df_path = 'data/labels/test.csv'
+images_dir = 'data/processed_images'
+models_dir = 'data/models/baseline'
 max_epochs    = 20
 batch_size    = 32
 early_stopping = 5
 ```
-
-
-```python
-import kagglehub
-path = kagglehub.dataset_download("sskrkss/dr-dataset-processed-images")
-```
-
-    Downloading to /root/.cache/kagglehub/datasets/sskrkss/dr-dataset-processed-images/3.archive...
-
-
-    100%|██████████| 5.67G/5.67G [05:32<00:00, 18.3MB/s]
-
-    Extracting files...
-
-
-    
-
-
-
-```python
-path
-```
-
-
-
-
-    '/root/.cache/kagglehub/datasets/sskrkss/dr-dataset-processed-images/versions/3'
-
 
 
 ### 5.5.1 VGG-19
@@ -1702,10 +1674,10 @@ model_registry = [
 
 
 ```python
-train_df_path = '/root/.cache/kagglehub/datasets/sskrkss/dr-dataset-processed-images/versions/3/train.csv'
-test_df_path  = '/root/.cache/kagglehub/datasets/sskrkss/dr-dataset-processed-images/versions/3/test.csv'
-images_dir    = '/root/.cache/kagglehub/datasets/sskrkss/dr-dataset-processed-images/versions/3/processed_images/processed_images'
-models_dir    = '/content'
+train_df_path = 'data/labels/train.csv'
+test_df_path = 'data/labels/test.csv'
+images_dir = 'data/processed_images'
+models_dir = 'data/models/baseline'
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print(f'Device: {device}')
