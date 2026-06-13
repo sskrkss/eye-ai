@@ -1539,7 +1539,7 @@ train_model(
 
 
 ```python
-!dvc add models/
+!dvc add data/models/
 ```
 
 
