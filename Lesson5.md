@@ -1395,15 +1395,29 @@ train_cv(
 
 ## 5.6 Оценка качества baseline моделей
 
-Для оценки качества моделей выбраны пять метрик, учитывающих как ординальность классов DR, так и дисбаланс выборки.
+Для оценки качества моделей выбраны **7 метрик**: 5 многоклассовых, учитывающих ординальность и дисбаланс классов, и 2 бинарные, клинически значимые.
 
-| Метрика | Описание                                                                                                                 |
-|---|--------------------------------------------------------------------------------------------------------------------------|
+**Многоклассовые метрики:**
+
+| Метрика | Описание |
+|---|---|
 | **QWK** (Quadratic Weighted Kappa) | Взвешенная мера согласия между предсказаниями и разметкой; ошибки на далеких классах штрафуются сильнее, чем на соседних |
-| **AUC** (macro OvR) | Площадь под ROC-кривой в схеме one-vs-rest; не зависит от порога классификации, усредняется по классам                   |
-| **Precision** (macro) | Доля верно предсказанных примеров среди всех предсказанных для данного класса; macro-среднее по классам                  |
-| **Recall** (macro) | Доля верно найденных примеров среди всех реальных примеров класса; macro-среднее по классам                              |
-| **F1** (macro) | Гармоническое среднее Precision и Recall; macro-среднее по классам                                                       |
+| **AUC** (macro OvR) | Площадь под ROC-кривой в схеме one-vs-rest; не зависит от порога классификации, усредняется по классам |
+| **Precision** (macro) | Доля верно предсказанных примеров среди всех предсказанных для данного класса; macro-среднее по классам |
+| **Recall** (macro) | Доля верно найденных примеров среди всех реальных примеров класса; macro-среднее по классам |
+| **F1** (macro) | Гармоническое среднее Precision и Recall; macro-среднее по классам |
+
+**Бинарные метрики — Sensitivity и Specificity** вычисляются после сворачивания 5-классовой шкалы DR в бинарную по одному из трех клинических порогов:
+
+| Порог | Positive (больной) | Negative (здоровый) | Клинический смысл |
+|---|---|---|---|
+| **Any DR** | классы 1–4 | класс 0 | Есть ли заболевание? |
+| **RDR** (Referable DR) | классы 2–4 | классы 0–1 | Нужно ли направить к офтальмологу? |
+| **STDR** (Sight-Threatening DR) | классы 3–4 | классы 0–2 | Есть ли угроза потери зрения? |
+
+- **Sensitivity** = TP / (TP + FN) — доля больных, которых модель смогла распознать
+- **Specificity** = TN / (TN + FP) — доля здоровых, которых модель не отправила на обследование по ошибке
+
 
 ```python
 import os
@@ -1415,7 +1429,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from torchvision.io import read_image
-from torchvision.models import vgg19, resnet50, swin_t, VGG19_Weights, ResNet50_Weights, Swin_T_Weights
+from torchvision.models import (
+    vgg19, resnet50, swin_v2_t, efficientnet_v2_s, densenet201, vit_b_16,
+    VGG19_Weights, ResNet50_Weights, Swin_V2_T_Weights,
+    EfficientNet_V2_S_Weights, DenseNet201_Weights, ViT_B_16_Weights,
+)
 from tqdm import tqdm
 from sklearn.metrics import (
     cohen_kappa_score, roc_auc_score,
@@ -1423,6 +1441,7 @@ from sklearn.metrics import (
     confusion_matrix, ConfusionMatrixDisplay,
 )
 ```
+
 
 ```python
 # Дублируем некоторые функции, чтобы можно было запускать ячейки с этого места
@@ -1432,6 +1451,7 @@ def find_image(directory, id_code):
         if os.path.exists(path):
             return path
     raise FileNotFoundError(f'No image found for {id_code} in {directory}')
+
 
 class DRDataset(torch.utils.data.Dataset):
     def __init__(self, df, image_dir, transform=None):
@@ -1450,6 +1470,7 @@ class DRDataset(torch.utils.data.Dataset):
         return img, int(row['diagnosis'])
 ```
 
+
 ```python
 def _make_vgg19():
     w = VGG19_Weights.DEFAULT
@@ -1463,30 +1484,54 @@ def _make_resnet50():
     m.fc = nn.Linear(2048, 5)
     return m, w
 
-def _make_swin_t():
-    w = Swin_T_Weights.DEFAULT
-    m = swin_t(weights=None)
+def _make_efficientnetv2s():
+    w = EfficientNet_V2_S_Weights.DEFAULT
+    m = efficientnet_v2_s(weights=None)
+    m.classifier[1] = nn.Linear(1280, 5)
+    return m, w
+
+def _make_densenet201():
+    w = DenseNet201_Weights.DEFAULT
+    m = densenet201(weights=None)
+    m.classifier = nn.Linear(1920, 5)
+    return m, w
+
+def _make_swin_v2_t():
+    w = Swin_V2_T_Weights.DEFAULT
+    m = swin_v2_t(weights=None)
     m.head = nn.Linear(768, 5)
     return m, w
 
+def _make_vit_b_16():
+    w = ViT_B_16_Weights.DEFAULT
+    m = vit_b_16(weights=None)
+    m.heads.head = nn.Linear(768, 5)
+    return m, w
+
 model_registry = [
-    ('VGG-19',    'vgg19',    _make_vgg19),
-    ('ResNet-50', 'resnet50', _make_resnet50),
-    ('Swin-T',    'swint',    _make_swin_t),
+    ('VGG-19',          'vgg19',          _make_vgg19),
+    ('ResNet-50',       'resnet50',        _make_resnet50),
+    ('EfficientNetV2S', 'efficientnetv2s', _make_efficientnetv2s),
+    ('DenseNet-201',    'densenet201',     _make_densenet201),
+    ('Swin-V2-T',       'swinv2t',         _make_swin_v2_t),
+    ('ViT-B/16',        'vitb16',          _make_vit_b_16),
 ]
 ```
 
+
 ```python
-train_df_path = 'data/labels/train.csv'
-test_df_path = 'data/labels/test.csv'
-images_dir = 'data/processed_images'
-models_dir = 'data/models/baseline'
+train_df_path = '/root/.cache/kagglehub/datasets/sskrkss/dr-dataset-processed-images/versions/3/train.csv'
+test_df_path  = '/root/.cache/kagglehub/datasets/sskrkss/dr-dataset-processed-images/versions/3/test.csv'
+images_dir    = '/root/.cache/kagglehub/datasets/sskrkss/dr-dataset-processed-images/versions/3/processed_images/processed_images'
+models_dir    = '/content'
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print(f'Device: {device}')
 ```
 
     Device: cuda:0
+
+
 
 ```python
 @torch.inference_mode()
@@ -1506,6 +1551,7 @@ def get_predictions(model, loader, desc='Inference'):
     print(f'  [{desc}] samples processed: {len(preds_out)}')
     return probs_out, preds_out, labels_out
 
+
 def compute_metrics(y_true, y_pred, y_probs):
     return {
         'QWK':       cohen_kappa_score(y_true, y_pred, weights='quadratic'),
@@ -1516,113 +1562,134 @@ def compute_metrics(y_true, y_pred, y_probs):
     }
 ```
 
+
 ```python
-train_df_full = pd.read_csv(train_df_path)
-test_df_eval  = pd.read_csv(test_df_path)
+test_df_eval = pd.read_csv(test_df_path)
+print(f'Test size: {len(test_df_eval)}\n')
 
-print(f'Val (fold {0}) size: {len(train_df_full[train_df_full["fold"] == 0])}')
-print(f'Test size:           {len(test_df_eval)}\n')
-
-FOLD = 0
 results = {}
 
 for name, fname, model_fn in model_registry:
     print(f"\n{'='*40}\n{name}\n{'='*40}")
 
     model, weights = model_fn()
-    ckpt_path = os.path.join(models_dir, f'{fname}_fold{FOLD}.pth')
+    ckpt_path = os.path.join(models_dir, f'{fname}.pth')
     model.load_state_dict(torch.load(ckpt_path, map_location=device))
     model = model.to(device)
 
-    val_transform = weights.transforms()
+    test_transform = weights.transforms()
+    test_loader = DataLoader(DRDataset(test_df_eval, images_dir, test_transform), batch_size=64, shuffle=False, num_workers=4, pin_memory=True)
 
-    val_df = train_df_full[train_df_full['fold'] == FOLD]
-    val_loader  = DataLoader(DRDataset(val_df,       images_dir, val_transform), batch_size=64, shuffle=False, num_workers=4, pin_memory=True)
-    test_loader = DataLoader(DRDataset(test_df_eval, images_dir, val_transform), batch_size=64, shuffle=False, num_workers=4, pin_memory=True)
-
-    val_probs,  val_preds,  val_labels  = get_predictions(model, val_loader,  desc=f'{name} val')
     test_probs, test_preds, test_labels = get_predictions(model, test_loader, desc=f'{name} test')
 
     results[name] = {
-        'val':         compute_metrics(val_labels,  val_preds,  val_probs),
         'test':        compute_metrics(test_labels, test_preds, test_probs),
         'test_preds':  test_preds,
         'test_labels': test_labels,
     }
 
-    print(f"  QWK  val={results[name]['val']['QWK']:.4f}  test={results[name]['test']['QWK']:.4f}")
-    print(f"  AUC  val={results[name]['val']['AUC']:.4f}  test={results[name]['test']['AUC']:.4f}")
+    print(f"  QWK  test={results[name]['test']['QWK']:.4f}")
+    print(f"  AUC  test={results[name]['test']['AUC']:.4f}")
 ```
 
-    Val (fold 0) size: 14710
-    Test size:           18403
+    Test size: 18403
     
     
     ========================================
     VGG-19
     ========================================
 
-    VGG-19 val: 100%|██████████| 230/230 [01:30<00:00,  2.54it/s]
 
-      [VGG-19 val] samples processed: 14710
+    VGG-19 test: 100%|██████████| 288/288 [00:21<00:00, 13.32it/s]
 
-    VGG-19 test: 100%|██████████| 288/288 [02:07<00:00,  2.26it/s]
 
       [VGG-19 test] samples processed: 18403
-      QWK  val=0.4598  test=0.4539
-      AUC  val=0.7754  test=0.7777
+      QWK  test=0.5339
+      AUC  test=0.7926
     
     ========================================
     ResNet-50
     ========================================
 
-    ResNet-50 val: 100%|██████████| 230/230 [00:51<00:00,  4.49it/s]
 
-      [ResNet-50 val] samples processed: 14710
+    ResNet-50 test: 100%|██████████| 288/288 [00:19<00:00, 14.79it/s]
 
-    ResNet-50 test: 100%|██████████| 288/288 [01:04<00:00,  4.48it/s]
 
       [ResNet-50 test] samples processed: 18403
-      QWK  val=0.5983  test=0.5821
-      AUC  val=0.8206  test=0.8173
+      QWK  test=0.6318
+      AUC  test=0.8387
     
     ========================================
-    Swin-T
+    EfficientNetV2S
     ========================================
 
-    Swin-T val: 100%|██████████| 230/230 [01:19<00:00,  2.88it/s]
 
-      [Swin-T val] samples processed: 14710
+    EfficientNetV2S test: 100%|██████████| 288/288 [00:36<00:00,  7.86it/s]
 
-    Swin-T test: 100%|██████████| 288/288 [01:39<00:00,  2.90it/s]
 
-      [Swin-T test] samples processed: 18403
-      QWK  val=0.6070  test=0.5864
-      AUC  val=0.8354  test=0.8280
+      [EfficientNetV2S test] samples processed: 18403
+      QWK  test=0.7092
+      AUC  test=0.8605
+    
+    ========================================
+    DenseNet-201
+    ========================================
+
+
+    DenseNet-201 test: 100%|██████████| 288/288 [00:21<00:00, 13.64it/s]
+
+
+      [DenseNet-201 test] samples processed: 18403
+      QWK  test=0.5718
+      AUC  test=0.8286
+    
+    ========================================
+    Swin-V2-T
+    ========================================
+
+
+    Swin-V2-T test: 100%|██████████| 288/288 [00:25<00:00, 11.10it/s]
+
+
+      [Swin-V2-T test] samples processed: 18403
+      QWK  test=0.6234
+      AUC  test=0.8381
+    
+    ========================================
+    ViT-B/16
+    ========================================
+
+
+    ViT-B/16 test: 100%|██████████| 288/288 [00:39<00:00,  7.37it/s]
+
+      [ViT-B/16 test] samples processed: 18403
+      QWK  test=0.6146
+      AUC  test=0.8315
+
 
     
+
+
 
 ```python
 metric_cols = ['QWK', 'AUC', 'Precision', 'Recall', 'F1']
 
 rows = []
 for name in results:
-    for split in ('val', 'test'):
-        row = {'Model': name, 'Split': split}
-        row.update(results[name][split])
-        rows.append(row)
+    row = {'Model': name}
+    row.update(results[name]['test'])
+    rows.append(row)
 
-comparison_df = pd.DataFrame(rows).set_index(['Model', 'Split'])[metric_cols]
+comparison_df = pd.DataFrame(rows).set_index('Model')[metric_cols]
 
 cell_text = [[f'{v:.4f}' for v in row] for row in comparison_df.values]
-row_labels = [f'{m} / {s}' for m, s in comparison_df.index]
 
-fig, ax = plt.subplots(figsize=(10, 2.5))
+fig, ax = plt.subplots(figsize=(10, 1.8))
 ax.axis('off')
 
 table = ax.table(
     cellText=cell_text,
-    rowLabels=row_labels,
+    rowLabels=comparison_df.index.tolist(),
     colLabels=metric_cols,
     cellLoc='center',
     loc='center',
@@ -1631,25 +1698,33 @@ table.auto_set_font_size(False)
 table.set_fontsize(10)
 table.scale(1, 1.6)
 
-is_test = comparison_df.index.get_level_values('Split') == 'test'
 for j, col in enumerate(metric_cols):
-    best_val = comparison_df.loc[is_test, col].max()
-    for i, (idx, val) in enumerate(zip(comparison_df.index, comparison_df[col])):
-        if idx[1] == 'test' and val == best_val:
+    best_val = comparison_df[col].max()
+    for i, val in enumerate(comparison_df[col]):
+        if val == best_val:
             table[i + 1, j].set_facecolor('#d4edda')
 
 plt.tight_layout()
 plt.show()
 ```
 
+
     
-![png](data/notebooks/Lesson5/Lesson5_74_0.png)
+![png](Lesson6_files/Lesson6_81_0.png)
     
+
+
 
 ```python
 class_labels = {0: 'No DR', 1: 'Mild', 2: 'Moderate', 3: 'Severe', 4: 'Proliferative'}
 
-fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+n_models = len(model_registry)
+ncols = 2
+nrows = (n_models + ncols - 1) // ncols
+
+fig, axes = plt.subplots(nrows, ncols, figsize=(ncols * 6, nrows * 6))
+axes = axes.flatten()
+
 for ax, (name, _, _) in zip(axes, model_registry):
     cm = confusion_matrix(results[name]['test_labels'], results[name]['test_preds'])
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=[class_labels[i] for i in range(5)])
@@ -1657,35 +1732,100 @@ for ax, (name, _, _) in zip(axes, model_registry):
     ax.set_title(name, fontsize=13)
     ax.tick_params(axis='x', rotation=45)
 
+for ax in axes[n_models:]:
+    ax.set_visible(False)
+
 plt.suptitle('Confusion Matrix — Test set', fontsize=14)
 plt.tight_layout()
 plt.show()
 ```
 
+
     
-![png](data/notebooks/Lesson5/Lesson5_75_0.png)
+![png](Lesson6_files/Lesson6_82_0.png)
     
 
-**Вывод:** Лучший результат среди baseline моделей показал Swin-T (QWK=0.5864), незначительно опережая ResNet-50 (QWK=0.5821). VGG-19 заметно отстаёт (QWK=0.4539). Все три модели обучены без оптимизаций, поэтому текущие результаты следует рассматривать как нижнюю оценку достижимого качества.
+
+
+```python
+thresholds = {
+    'Any DR':  1,   # positive: классы 1–4
+    'RDR':     2,   # positive: классы 2–4 (referable)
+    'STDR':    3,   # positive: классы 3–4 (sight-threatening)
+}
+
+rows = []
+for name, _, _ in model_registry:
+    y_true = results[name]['test_labels']
+    y_pred = results[name]['test_preds']
+    row = {'Model': name}
+    for thresh_name, thresh in thresholds.items():
+        y_true_bin = (y_true >= thresh).astype(int)
+        y_pred_bin = (y_pred >= thresh).astype(int)
+        tn, fp, fn, tp = confusion_matrix(y_true_bin, y_pred_bin, labels=[0, 1]).ravel()
+        row[f'{thresh_name} Sens'] = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+        row[f'{thresh_name} Spec'] = tn / (tn + fp) if (tn + fp) > 0 else 0.0
+    rows.append(row)
+
+df_thresh = pd.DataFrame(rows).set_index('Model')
+
+col_labels = list(df_thresh.columns)
+cell_text  = [[f'{v:.4f}' for v in row] for row in df_thresh.values]
+
+fig, ax = plt.subplots(figsize=(14, 2.2))
+ax.axis('off')
+table = ax.table(
+    cellText=cell_text,
+    rowLabels=df_thresh.index.tolist(),
+    colLabels=col_labels,
+    cellLoc='center',
+    loc='center',
+)
+table.auto_set_font_size(False)
+table.set_fontsize(9)
+table.scale(1, 1.7)
+
+# Подсвечиваем лучший результат в каждой колонке
+for j, col in enumerate(col_labels):
+    best = df_thresh[col].max()
+    for i, val in enumerate(df_thresh[col]):
+        if val == best:
+            table[i + 1, j].set_facecolor('#d4edda')
+
+plt.title('Sensitivity / Specificity по клиническим порогам (Test set)', fontsize=12, pad=10)
+plt.tight_layout()
+plt.show()
+```
+
+
+    
+![png](Lesson6_files/Lesson6_83_0.png)
+    
+
+
+**Вывод:**
+
+Для дальнейшей оптимизации выбраны по одной лучшей модели из каждой архитектурной группы:
+- **EfficientNetV2S** (CNN) — наилучший результат среди всех baseline: QWK=0.71, AUC=0.86
+- **Swin-V2-T** (ViT) — лучший среди трансформеров: QWK=0.62, AUC=0.84
+
+Во всех моделях наблюдается резкий дисбаланс: Specificity стабильно высокая (0.96–0.99), тогда как Sensitivity существенно ниже (0.35–0.65). Это артефакт дисбаланса классов: датасет преимущественно состоит из класса 0 (No DR), поэтому модели «по умолчанию» легко правильно классифицируют здоровых (высокий TN), но пропускают значительную долю больных (высокий FN).
+
+Для скрининга это критично: пропуск пациента с заболеванием (низкая Sensitivity) клинически опаснее, чем ложная тревога. EfficientNetV2S показывает наилучшую Sensitivity по всем трем клиническим порогам (Any DR: 0.51, RDR: 0.65, STDR: 0.59), что делает его приоритетным кандидатом. Swin-V2-T уступает по Sensitivity (Any DR: 0.40, RDR: 0.51, STDR: 0.43), однако сохраняет потенциал: трансформеры, как правило, сильнее реагируют на аугментацию и балансировку классов.
+
+Дальнейшая оптимизация будет направлена прежде всего на повышение Sensitivity при сохранении приемлемой Specificity.
 
 ---
 
 ## 5.7 Направления для оптимизации
 
-**Данные**
-
 - **Более агрессивная фильтрация по яркости и резкости**: текущие пороги (`brightness < 20`, `brightness > 210`, `blur < 30`) отсекают только явный брак. Ужесточение порогов позволит убрать снимки низкого качества, которые затрудняют обучение и могут ухудшать метрики.
-- **Обучение на полной тренировочной выборке**: вместо одного фолда использовать весь train целиком. Модель обучится на 20% большем объеме данных, что особенно важно для редких классов.
 - **Undersampling доминирующего класса**: класс No DR составляет ~73% выборки. Уменьшение его доли до уровня остальных классов может помочь модели лучше распознавать редкие классы.
 - **Оптимизация аугментации**: текущий набор подобран без экспериментов. Поскольку val loss ниже train loss, аугментации могут быть избыточно агрессивными — их смягчение стоит рассмотреть в первую очередь.
-
-**Архитектура моделей**
-
-- **Расширение пула архитектур**: выбор архитектуры существенно влияет на качество. Стоит расширить эксперимент, включив больше CNN, ViT, а также гибридных моделей.
 - **Более глубокое размораживание backbone**: сейчас размораживается только последний блок каждой модели. Постепенное размораживание дополнительных слоев может позволить модели адаптировать больше признаков под специфику снимков глазного дна.
-
-**Обучение**
-
 - **Loss с весами классов**: присвоить редким классам больший вес в функции потерь, чтобы ошибки на них штрафовались сильнее.
 - **SmoothL1Loss**: переформулировать задачу как регрессию на метки 0–4 и округлять предсказание до ближайшего класса. В отличие от CrossEntropyLoss, штрафует дальние ошибки сильнее близких — что соответствует ординальной природе DR.
 - **Подбор гиперпараметров**: learning rate, batch size и scheduler выставлены вручную без оптимизации. Автоматический подбор — один из наиболее очевидных резервов роста качества.
+
+---
+
