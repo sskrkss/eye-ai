@@ -1022,13 +1022,16 @@ train_df.head()
 
 ## 5.5 Обучение baseline моделей
 
-Для обучения baseline моделей выбраны три архитектуры:
+Для обучения baseline моделей выбраны шесть архитектур:
 
 | Модель | Год | Тип архитектуры | Размороженные слои | Всего параметров | Обучаемых параметров |
 |---|---|---|---|---|---|
-| VGG-19 | 2014 | Классическая CNN | `classifier` + `features[28:]` | ~144M | ~124M |
-| ResNet-50 | 2015 | CNN с residual-соединениями | `fc` + `layer4` | ~26M | ~15M |
-| Swin-Tiny | 2021 | Vision Transformer (shifted windows) | `head` + `features[-1]` + `norm` | ~28M | ~14M |
+| VGG-19 | 2014 | CNN | `classifier` + `features[28:]` | ~144M | ~124M |
+| ResNet-50 | 2015 | CNN | `fc` + `layer4` | ~26M | ~15M |
+| EfficientNetV2S | 2022 | CNN | `classifier` + `features[-2:]` | ~21M | ~5M |
+| DenseNet-201 | 2017 | CNN | `classifier` + `denseblock4` + `norm5` | ~20M | ~8M |
+| Swin-V2-Tiny | 2022 | Vision Transformer (shifted windows) | `head` + `features[-1]` + `norm` | ~28M | ~14M |
+| ViT-B/16 | 2020 | Vision Transformer | `heads` + `encoder.layers[-1]` + `encoder.ln` | ~86M | ~7M |
 
 Все модели предобучены на ImageNet. Чтобы адаптировать их к задаче (5 классов вместо 1000), заменяется последний слой, затем размораживаются новый классификатор и последний блок backbone — более глубокие слои остаются замороженными.
 
@@ -1041,14 +1044,12 @@ train_df.head()
 | Батч           | 32                                                                 |
 | Максимум эпох  | 20                                                                 |
 | Early stopping | 3 эпохи                                                            |
-| Фолды          | fold 0                                                             |
 | Аугментация    | случайное горизонтальное отражение<br>случайный поворот до 180°<br>случайный сдвиг, масштабирование (±20%) и shear 11.5°<br>случайное изменение яркости, контраста, насыщенности и оттенка<br>размытие по Гауссу с вероятностью 0.5 |
 
-*Early stopping*: обучение прерывается, если val loss не улучшается 3 эпохи подряд; восстанавливаются веса лучшей эпохи.
-
-*Фолды*: из-за ограничений вычислительного лимита Kaggle принято решение проводить обучение модели только на одном фолде.
+*Early stopping*: обучение прерывается, если test loss не улучшается 3 эпохи подряд; восстанавливаются веса лучшей эпохи.
 
 *Аугментация*: применяется только к тренировочной выборке.
+
 
 ```python
 import copy
@@ -1059,12 +1060,17 @@ from torch.optim import Adam
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from torchvision.io import read_image
-from torchvision.models import vgg19, resnet50, swin_t, VGG19_Weights, ResNet50_Weights, Swin_T_Weights
+from torchvision.models import (
+    vgg19, resnet50, swin_v2_t, efficientnet_v2_s, densenet201, vit_b_16,
+    VGG19_Weights, ResNet50_Weights, Swin_V2_T_Weights,
+    EfficientNet_V2_S_Weights, DenseNet201_Weights, ViT_B_16_Weights,
+)
 from IPython.display import clear_output
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import pandas as pd
 ```
+
 
 ```python
 # Дублируем некоторые функции, чтобы можно было запускать ячейки с этого места
@@ -1074,6 +1080,7 @@ def find_image(directory, id_code):
         if os.path.exists(path):
             return path
     raise FileNotFoundError(f'No image found for {id_code} in {directory}')
+
 
 class DRDataset(Dataset):
     def __init__(self, df, image_dir, transform=None):
@@ -1092,6 +1099,7 @@ class DRDataset(Dataset):
         return img, int(row['diagnosis'])
 ```
 
+
 ```python
 def make_train_transform(weights):
     aug = transforms.Compose([
@@ -1102,6 +1110,7 @@ def make_train_transform(weights):
         transforms.RandomApply([transforms.GaussianBlur(kernel_size=3)], p=0.5),
     ])
     return transforms.Compose([aug, weights.transforms()])
+
 
 def train_epoch(model, optimizer, loader, loss_fn):
     model.train()
@@ -1116,6 +1125,7 @@ def train_epoch(model, optimizer, loader, loss_fn):
         total_loss += loss.item()
     return total_loss / len(loader)
 
+
 @torch.inference_mode()
 def evaluate(model, loader, loss_fn):
     model.eval()
@@ -1126,84 +1136,79 @@ def evaluate(model, loader, loss_fn):
         total_loss += loss_fn(out, y).item()
     return total_loss / len(loader)
 
-def plot_stats(train_loss, valid_loss, title):
+
+def plot_stats(train_loss, test_loss, title):
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.set_title(f'{title} — Loss')
     ax.plot(train_loss, label='Train')
-    ax.plot(valid_loss, label='Valid')
+    ax.plot(test_loss, label='Test')
     ax.legend(); ax.grid()
     plt.tight_layout(); plt.show()
 
-def fit(model, optimizer, train_loader, valid_loader, max_epochs, title, loss_fn, early_stopping):
-    train_losses, valid_losses = [], []
 
-    best_val_loss = float('inf')
+def fit(model, optimizer, train_loader, test_loader, max_epochs, title, loss_fn, early_stopping):
+    train_losses, test_losses = [], []
+
+    best_test_loss = float('inf')
     best_model_state = None
     epochs_without_improvement = 0
 
     for epoch in range(max_epochs):
         tr_loss = train_epoch(model, optimizer, train_loader, loss_fn)
-        vl_loss = evaluate(model, valid_loader, loss_fn)
+        ts_loss = evaluate(model, test_loader, loss_fn)
         train_losses.append(tr_loss)
-        valid_losses.append(vl_loss)
+        test_losses.append(ts_loss)
         clear_output(wait=True)
-        plot_stats(train_losses, valid_losses, title)
-        print(f"Epoch {epoch+1}/{max_epochs} | Train Loss {tr_loss:.4f} | Valid Loss {vl_loss:.4f}")
+        plot_stats(train_losses, test_losses, title)
+        print(f"Epoch {epoch+1}/{max_epochs} | Train Loss {tr_loss:.4f} | Test Loss {ts_loss:.4f}")
 
-        if vl_loss < best_val_loss:
-            best_val_loss = vl_loss
+        if ts_loss < best_test_loss:
+            best_test_loss = ts_loss
             best_model_state = copy.deepcopy(model.state_dict())
             epochs_without_improvement = 0
         else:
             epochs_without_improvement += 1
             if epochs_without_improvement >= early_stopping:
-                print(f"Early stopping на эпохе {epoch+1} (val loss не улучшался {early_stopping} эпох)")
+                print(f"Early stopping на эпохе {epoch+1} (test loss не улучшался {early_stopping} эпох)")
                 break
 
     model.load_state_dict(best_model_state)
 
-def train_cv(
+
+def train_model(
         name,
         weights,
         model,
         optimizer,
         loss_fn,
         train_df_path,
+        test_df_path,
         images_dir,
         models_dir,
-        num_cv_folds,
         max_epochs,
         batch_size,
         early_stopping,
 ):
     train_df = pd.read_csv(train_df_path)
+    test_df  = pd.read_csv(test_df_path)
 
     fname = name.lower().replace('-', '').replace(' ', '_')
-    init_model_state = copy.deepcopy(model.state_dict())
-    init_optim_state = copy.deepcopy(optimizer.state_dict())
 
     train_transform = make_train_transform(weights)
-    val_transform   = weights.transforms()
+    test_transform  = weights.transforms()
 
-    for fold in range(num_cv_folds):
-        print(f"\n{'='*40}\n{name} | Fold {fold}\n{'='*40}")
+    train_loader = DataLoader(DRDataset(train_df, images_dir, train_transform), batch_size=batch_size, shuffle=True,  num_workers=4, pin_memory=True)
+    test_loader  = DataLoader(DRDataset(test_df,  images_dir, test_transform),  batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
 
-        model.load_state_dict(init_model_state)
-        optimizer.load_state_dict(init_optim_state)
+    print(f"\n{'='*40}\n{name}\n{'='*40}")
+    fit(model, optimizer, train_loader, test_loader, max_epochs=max_epochs, title=name, loss_fn=loss_fn, early_stopping=early_stopping)
 
-        train_fold_df = train_df[train_df['fold'] != fold]
-        valid_fold_df = train_df[train_df['fold'] == fold]
-
-        train_loader = DataLoader(DRDataset(train_fold_df, images_dir, train_transform), batch_size=batch_size, shuffle=True,  num_workers=4, pin_memory=True)
-        valid_loader = DataLoader(DRDataset(valid_fold_df, images_dir, val_transform),   batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
-
-        fit(model, optimizer, train_loader, valid_loader, max_epochs=max_epochs, title=f'{name} fold {fold}', loss_fn=loss_fn, early_stopping=early_stopping)
-
-        os.makedirs(models_dir, exist_ok=True)
-        path = os.path.join(models_dir, f'{fname}_fold{fold}.pth')
-        torch.save(model.state_dict(), path)
-        print(f"Сохранено: {path}")
+    os.makedirs(models_dir, exist_ok=True)
+    path = os.path.join(models_dir, f'{fname}.pth')
+    torch.save(model.state_dict(), path)
+    print(f"Сохранено: {path}")
 ```
+
 
 ```python
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -1213,31 +1218,59 @@ print(f"Device: {device}")
 
     Device: cuda:0
 
+
+
 ```python
-train_df_path = 'data/labels/train.csv'
-images_dir = 'data/processed_images'
-models_dir = 'data/models/baseline'
-num_cv_folds = 1
-max_epochs = 20
-batch_size = 32
-early_stopping = 3
+train_df_path = '/root/.cache/kagglehub/datasets/sskrkss/dr-dataset-processed-images/versions/3/train.csv'
+test_df_path  = '/root/.cache/kagglehub/datasets/sskrkss/dr-dataset-processed-images/versions/3/test.csv'
+images_dir    = '/root/.cache/kagglehub/datasets/sskrkss/dr-dataset-processed-images/versions/3/processed_images/processed_images'
+models_dir    = '/content'
+max_epochs    = 20
+batch_size    = 32
+early_stopping = 5
 ```
 
+
+```python
+import kagglehub
+path = kagglehub.dataset_download("sskrkss/dr-dataset-processed-images")
+```
+
+    Downloading to /root/.cache/kagglehub/datasets/sskrkss/dr-dataset-processed-images/3.archive...
+
+
+    100%|██████████| 5.67G/5.67G [05:32<00:00, 18.3MB/s]
+
+    Extracting files...
+
+
+    
+
+
+
+```python
+path
+```
+
+
+
+
+    '/root/.cache/kagglehub/datasets/sskrkss/dr-dataset-processed-images/versions/3'
+
+
+
 ### 5.5.1 VGG-19
+
 
 ```python
 vgg_weights = VGG19_Weights.DEFAULT
 model_vgg = vgg19(weights=vgg_weights)
 
-# Замораживаем все веса
 for p in model_vgg.parameters():
     p.requires_grad = False
 
-# Заменяем последний слой: ImageNet выдавал 1000 классов, нам нужно 5
 model_vgg.classifier[6] = nn.Linear(4096, 5)
 
-# Размораживаем классификатор и последний conv-блок (features[28:]) —
-# они будут дообучаться под нашу задачу
 model_vgg.classifier.requires_grad_(True)
 for i in range(28, len(model_vgg.features)):
     for p in model_vgg.features[i].parameters():
@@ -1245,149 +1278,298 @@ for i in range(28, len(model_vgg.features)):
 
 model_vgg = model_vgg.to(device)
 
-# Дифференциальные LR: новый классификатор учится быстрее,
-# предобученные conv-слои — осторожнее, чтобы не сломать выученные признаки
 optimizer_vgg = Adam([
     {'params': model_vgg.classifier.parameters(), 'lr': 1e-3},
     {'params': [p for i in range(28, len(model_vgg.features))
                   for p in model_vgg.features[i].parameters()], 'lr': 1e-4},
 ])
 
-train_cv(
+train_model(
     name='VGG-19',
     weights=vgg_weights,
     model=model_vgg,
     optimizer=optimizer_vgg,
     loss_fn=loss_fn,
     train_df_path=train_df_path,
+    test_df_path=test_df_path,
     images_dir=images_dir,
     models_dir=models_dir,
-    num_cv_folds=num_cv_folds,
     max_epochs=max_epochs,
     batch_size=batch_size,
-    early_stopping=early_stopping
+    early_stopping=early_stopping,
 )
 ```
 
+
     
-![png](data/notebooks/Lesson5/Lesson5_59_0.png)
+![png](data/notebooks/Lesson5/Lesson5_60_0.png)
     
 
-    Epoch 12/20 | Train Loss 0.7508 | Valid Loss 0.7226
-    Early stopping на эпохе 12 (val loss не улучшался 3 эпох)
-    Сохранено: /kaggle/working/models/vgg19_fold0.pth
+
+    Epoch 20/20 | Train Loss 0.7244 | Test Loss 0.7197
+    Сохранено: /content/vgg19.pth
+
 
 ### 5.5.2 ResNet-50
+
 
 ```python
 resnet_weights = ResNet50_Weights.DEFAULT
 model_resnet = resnet50(weights=resnet_weights)
 
-# Замораживаем все веса
 for p in model_resnet.parameters():
     p.requires_grad = False
 
-# Заменяем последний слой: ImageNet выдавал 1000 классов, нам нужно 5
 model_resnet.fc = nn.Linear(2048, 5)
 
-# Размораживаем fc и последний residual-блок (layer4) —
-# они будут дообучаться под нашу задачу
 model_resnet.fc.requires_grad_(True)
 model_resnet.layer4.requires_grad_(True)
 
 model_resnet = model_resnet.to(device)
 
-# Дифференциальные LR: новый классификатор учится быстрее,
-# предобученные слои — осторожнее, чтобы не сломать выученные признаки
 optimizer_resnet = Adam([
     {'params': model_resnet.fc.parameters(),     'lr': 1e-3},
     {'params': model_resnet.layer4.parameters(), 'lr': 1e-4},
 ])
 
-train_cv(
+train_model(
     name='ResNet-50',
     weights=resnet_weights,
     model=model_resnet,
     optimizer=optimizer_resnet,
     loss_fn=loss_fn,
     train_df_path=train_df_path,
+    test_df_path=test_df_path,
     images_dir=images_dir,
     models_dir=models_dir,
-    num_cv_folds=num_cv_folds,
     max_epochs=max_epochs,
     batch_size=batch_size,
-    early_stopping=early_stopping
+    early_stopping=early_stopping,
 )
 ```
 
+
     
-![png](data/notebooks/Lesson5/Lesson5_61_0.png)
+![png](data/notebooks/Lesson5/Lesson5_62_0.png)
     
 
-    Epoch 6/20 | Train Loss 0.6732 | Valid Loss 0.6790
-    Early stopping на эпохе 6 (val loss не улучшался 3 эпох)
-    Сохранено: /kaggle/working/models/resnet50_fold0.pth
 
-### 5.5.3 Swin-Tiny
+    Epoch 20/20 | Train Loss 0.6179 | Test Loss 0.6422
+    Сохранено: /content/resnet50.pth
+
+
+### 5.5.3 EfficientNetV2S
+
 
 ```python
-swin_weights = Swin_T_Weights.DEFAULT
-model_swin = swin_t(weights=swin_weights)
+eff_weights = EfficientNet_V2_S_Weights.DEFAULT
+model_eff = efficientnet_v2_s(weights=eff_weights)
 
-# Замораживаем все веса
+for p in model_eff.parameters():
+    p.requires_grad = False
+
+model_eff.classifier[1] = nn.Linear(1280, 5)
+
+model_eff.classifier.requires_grad_(True)
+model_eff.features[-1].requires_grad_(True)
+model_eff.features[-2].requires_grad_(True)
+
+model_eff = model_eff.to(device)
+
+optimizer_eff = Adam([
+    {'params': model_eff.classifier.parameters(), 'lr': 1e-3},
+    {'params': list(model_eff.features[-1].parameters()) +
+               list(model_eff.features[-2].parameters()), 'lr': 1e-4},
+])
+
+train_model(
+    name='EfficientNetV2S',
+    weights=eff_weights,
+    model=model_eff,
+    optimizer=optimizer_eff,
+    loss_fn=loss_fn,
+    train_df_path=train_df_path,
+    test_df_path=test_df_path,
+    images_dir=images_dir,
+    models_dir=models_dir,
+    max_epochs=max_epochs,
+    batch_size=batch_size,
+    early_stopping=early_stopping,
+)
+```
+
+
+    
+![png](data/notebooks/Lesson5/Lesson5_64_0.png)
+    
+
+
+    Epoch 19/20 | Train Loss 0.5623 | Test Loss 0.5845
+    Early stopping на эпохе 19 (test loss не улучшался 5 эпох)
+    Сохранено: /content/efficientnetv2s.pth
+
+
+### 5.5.4 DenseNet-201
+
+
+```python
+dens_weights = DenseNet201_Weights.DEFAULT
+model_dens = densenet201(weights=dens_weights)
+
+for p in model_dens.parameters():
+    p.requires_grad = False
+
+model_dens.classifier = nn.Linear(1920, 5)
+
+model_dens.classifier.requires_grad_(True)
+model_dens.features.denseblock4.requires_grad_(True)
+model_dens.features.norm5.requires_grad_(True)
+
+model_dens = model_dens.to(device)
+
+optimizer_dens = Adam([
+    {'params': model_dens.classifier.parameters(), 'lr': 1e-3},
+    {'params': list(model_dens.features.denseblock4.parameters()) +
+               list(model_dens.features.norm5.parameters()), 'lr': 1e-4},
+])
+
+train_model(
+    name='DenseNet-201',
+    weights=dens_weights,
+    model=model_dens,
+    optimizer=optimizer_dens,
+    loss_fn=loss_fn,
+    train_df_path=train_df_path,
+    test_df_path=test_df_path,
+    images_dir=images_dir,
+    models_dir=models_dir,
+    max_epochs=max_epochs,
+    batch_size=batch_size,
+    early_stopping=early_stopping,
+)
+```
+
+
+    
+![png](data/notebooks/Lesson5/Lesson5_66_0.png)
+    
+
+
+    Epoch 16/20 | Train Loss 0.6624 | Test Loss 0.7595
+    Early stopping на эпохе 16 (test loss не улучшался 5 эпох)
+    Сохранено: /content/densenet201.pth
+
+
+### 5.5.5 Swin-V2-Tiny
+
+
+```python
+swin_weights = Swin_V2_T_Weights.DEFAULT
+model_swin = swin_v2_t(weights=swin_weights)
+
 for p in model_swin.parameters():
     p.requires_grad = False
 
-# Заменяем последний слой: ImageNet выдавал 1000 классов, нам нужно 5
 model_swin.head = nn.Linear(768, 5)
 
-# Размораживаем head, последний трансформер-блок (features[-1]) и нормализацию (norm) —
-# они будут дообучаться под нашу задачу
 model_swin.head.requires_grad_(True)
 model_swin.features[-1].requires_grad_(True)
 model_swin.norm.requires_grad_(True)
 
 model_swin = model_swin.to(device)
 
-# Дифференциальные LR: новый классификатор учится быстрее,
-# предобученные слои — осторожнее, чтобы не сломать выученные признаки
 optimizer_swin = Adam([
     {'params': model_swin.head.parameters(), 'lr': 1e-3},
     {'params': list(model_swin.features[-1].parameters()) +
                list(model_swin.norm.parameters()), 'lr': 1e-4},
 ])
 
-train_cv(
-    name='Swin-T',
+train_model(
+    name='Swin-V2-T',
     weights=swin_weights,
     model=model_swin,
     optimizer=optimizer_swin,
     loss_fn=loss_fn,
     train_df_path=train_df_path,
+    test_df_path=test_df_path,
     images_dir=images_dir,
     models_dir=models_dir,
-    num_cv_folds=num_cv_folds,
     max_epochs=max_epochs,
     batch_size=batch_size,
-    early_stopping=early_stopping
+    early_stopping=early_stopping,
 )
 ```
 
+
     
-![png](data/notebooks/Lesson5/Lesson5_63_0.png)
+![png](data/notebooks/Lesson5/Lesson5_68_0.png)
     
 
-    Epoch 15/20 | Train Loss 0.6738 | Valid Loss 0.6726
-    Early stopping на эпохе 15 (val loss не улучшался 3 эпох)
-    Сохранено: /kaggle/working/models/swint_fold0.pth
 
-### 5.5.4 Версионирование baseline моделей с DVC
+    Epoch 20/20 | Train Loss 0.6484 | Test Loss 0.6311
+    Сохранено: /content/swinv2t.pth
+
+
+### 5.5.6 ViT-B/16
+
+
+```python
+vit_weights = ViT_B_16_Weights.DEFAULT
+model_vit = vit_b_16(weights=vit_weights)
+
+for p in model_vit.parameters():
+    p.requires_grad = False
+
+model_vit.heads.head = nn.Linear(768, 5)
+
+model_vit.heads.requires_grad_(True)
+model_vit.encoder.layers[-1].requires_grad_(True)
+model_vit.encoder.ln.requires_grad_(True)
+
+model_vit = model_vit.to(device)
+
+optimizer_vit = Adam([
+    {'params': model_vit.heads.parameters(), 'lr': 1e-3},
+    {'params': list(model_vit.encoder.layers[-1].parameters()) +
+               list(model_vit.encoder.ln.parameters()), 'lr': 1e-4},
+])
+
+train_model(
+    name='ViT-B/16',
+    weights=vit_weights,
+    model=model_vit,
+    optimizer=optimizer_vit,
+    loss_fn=loss_fn,
+    train_df_path=train_df_path,
+    test_df_path=test_df_path,
+    images_dir=images_dir,
+    models_dir=models_dir,
+    max_epochs=max_epochs,
+    batch_size=batch_size,
+    early_stopping=early_stopping,
+)
+```
+
+
+    
+![png](data/notebooks/Lesson5/Lesson5_70_0.png)
+    
+
+
+    Epoch 15/20 | Train Loss 0.6347 | Test Loss 0.6673
+    Early stopping на эпохе 15 (test loss не улучшался 5 эпох)
+    Сохранено: /content/vitb16.pth
+
+
+### 5.5.7 Версионирование baseline моделей с DVC
 
 Обученные чекпоинты добавляются в DVC
+
 
 ```python
 !dvc add models/
 ```
+
 
 ```python
 !dvc push
@@ -1710,7 +1892,7 @@ plt.show()
 
 
     
-![png](Lesson6_files/Lesson6_81_0.png)
+![png](data/notebooks/Lesson5/Lesson5_81_0.png)
     
 
 
@@ -1742,7 +1924,7 @@ plt.show()
 
 
     
-![png](Lesson6_files/Lesson6_82_0.png)
+![png](data/notebooks/Lesson5/Lesson5_82_0.png)
     
 
 
@@ -1799,7 +1981,7 @@ plt.show()
 
 
     
-![png](Lesson6_files/Lesson6_83_0.png)
+![png](data/notebooks/Lesson5/Lesson5_83_0.png)
     
 
 
