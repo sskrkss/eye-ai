@@ -918,36 +918,6 @@ print(pd.DataFrame({
     3       1828      2.5    429     2.3
     4       1754      2.4    432     2.3
 
-### 5.4.5 Разбиение train на фолды (кросс-валидация)
-
-Тренировочная выборка разбивается на **5 фолдов** по пациентам — пациенты из одного фолда не пересекаются с другими. Стратификация по `diagnosis` сохраняет распределение классов в каждом фолде. Каждая итерация кросс-валидации использует 4 фолда для обучения модели и 1 для оценки ее качества.
-
-*Примечание:* в дальнейшем данный подход может быть пересмотрен, вплоть до использования всей тренировочной выборки для обучения финальной модели.
-
-```python
-sgkf = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=42)
-
-train_df = train_df.reset_index(drop=True)
-train_df['fold'] = -1
-for fold, (_, val_idx) in enumerate(sgkf.split(train_df, train_df['diagnosis'], groups=train_df['patient_id'])):
-    train_df.loc[val_idx, 'fold'] = fold
-
-train_df.to_csv('data/labels/train.csv', index=False)
-
-fold_sizes = train_df.groupby('fold').size().rename('count')
-print(fold_sizes.to_string())
-print(f'\nИтого: {fold_sizes.sum()} снимков, {len(fold_sizes)} фолдов')
-```
-
-    fold
-    0    14710
-    1    14710
-    2    14710
-    3    14710
-    4    14710
-    
-    Итого: 73550 снимков, 5 фолдов
-
 ```python
 train_df.head()
 ```
@@ -961,7 +931,6 @@ train_df.head()
       <th>id_code</th>
       <th>diagnosis</th>
       <th>patient_id</th>
-      <th>fold</th>
     </tr>
   </thead>
   <tbody>
@@ -970,41 +939,86 @@ train_df.head()
       <td>1_left</td>
       <td>0</td>
       <td>1</td>
-      <td>2</td>
     </tr>
     <tr>
       <th>1</th>
       <td>1_right</td>
       <td>0</td>
       <td>1</td>
-      <td>2</td>
     </tr>
     <tr>
       <th>2</th>
       <td>2_left</td>
       <td>0</td>
       <td>2</td>
-      <td>3</td>
     </tr>
     <tr>
       <th>3</th>
       <td>2_right</td>
       <td>0</td>
       <td>2</td>
-      <td>3</td>
     </tr>
     <tr>
       <th>4</th>
       <td>4_left</td>
       <td>2</td>
       <td>4</td>
-      <td>2</td>
     </tr>
   </tbody>
 </table>
 </div>
 
-### 5.4.6 Версионирование данных с DVC
+```python
+test_df.head()
+```
+
+<div>
+
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>id_code</th>
+      <th>diagnosis</th>
+      <th>patient_id</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>3_left</td>
+      <td>2</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>3_right</td>
+      <td>2</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>6_left</td>
+      <td>1</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>6_right</td>
+      <td>1</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>12_left</td>
+      <td>0</td>
+      <td>12</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+### 5.4.5 Версионирование данных с DVC
 
 Обработанные снимки и разметка добавляются в DVC
 
