@@ -461,17 +461,6 @@ show_metrics_table(
 )
 ```
 
-    EfficientNetV2S Reg: 100%|██████████| 288/288 [03:12<00:00,  1.49it/s]
-
-
-      [EfficientNetV2S Reg] samples: 18403
-
-
-    EfficientNetV2S Baseline: 100%|██████████| 288/288 [03:12<00:00,  1.50it/s]
-
-
-      [EfficientNetV2S Baseline] samples processed: 18403
-
 
 
     
@@ -586,17 +575,6 @@ show_metrics_table(
 )
 ```
 
-    EfficientNetV2S Aug: 100%|██████████| 288/288 [03:13<00:00,  1.49it/s]
-
-
-      [EfficientNetV2S Aug] samples processed: 18403
-
-
-    EfficientNetV2S Baseline: 100%|██████████| 288/288 [03:12<00:00,  1.49it/s]
-
-
-      [EfficientNetV2S Baseline] samples processed: 18403
-
 
 
     
@@ -672,7 +650,6 @@ print(f'Снимков в папке:    {len(processed)}')
 ```
 
 
-    Preprocessing 384px:   0%|          | 0/91953 [00:00<?, ?it/s]
 
 
     Снимков в папке:    91953
@@ -761,18 +738,6 @@ show_metrics_table(
     title='EfficientNetV2S: 224px vs 384px',
 )
 ```
-
-    EfficientNetV2S 384: 100%|██████████| 288/288 [03:12<00:00,  1.50it/s]
-
-
-      [EfficientNetV2S 384] samples processed: 18403
-
-
-    EfficientNetV2S 224 (baseline): 100%|██████████| 288/288 [03:12<00:00,  1.50it/s]
-
-
-      [EfficientNetV2S 224 (baseline)] samples processed: 18403
-
 
 
     
