@@ -20,7 +20,9 @@
 
 ## 6.1 Проведение экспериментов по улучшению модели
 
-Каждый подраздел — отдельный мини-эксперимент. Изменяется ровно один параметр, остальные — фиксированы. Результат каждого эксперимента сравнивается с baseline по QWK и AUC на тестовой выборке. AUC вычисляется отдельно для каждого из трех клинических порогов:
+Каждый подраздел — отдельный мини-эксперимент. Изменяется ровно один параметр, остальные — фиксированы. Результат каждого эксперимента сравнивается с baseline по:
+1) **QWK** (Quadratic Weighted Kappa) — мера согласия между предсказаниями и разметкой с учетом ординальности классов. Ошибка между классами 0 и 4 штрафуется сильнее, чем между 0 и 1. Отражает качество ранжирования по всем пяти классам одновременно.
+2) **AUC** (Area Under ROC Curve) — вероятность того, что модель присвоит случайному больному снимку более высокий скор, чем случайному здоровому. В отличие от QWK, AUC не зависит от выбора порога классификации и оценивает разделяющую способность модели для конкретной бинарной задачи. Вычисляется отдельно для каждого из трех клинических порогов:
 
 | Порог | Positive (больной) | Negative (здоровый) | Клинический смысл |
 |---|---|---|---|
@@ -53,19 +55,21 @@ from tqdm import tqdm
 from tqdm.auto import tqdm as tqdm_auto
 from sklearn.metrics import (
     cohen_kappa_score, roc_auc_score,
-    roc_curve,
+    confusion_matrix,
+    precision_recall_fscore_support,
+    roc_curve
 )
 ```
 
 
 ```python
-TRAIN_DF_PATH        = 'data/labels/train.csv'
-TEST_DF_PATH         = 'data/labels/test.csv'
+TRAIN_DF_PATH        = '/kaggle/input/datasets/sskrkss/dr-dataset-processed-images/train.csv'
+TEST_DF_PATH         = '/kaggle/input/datasets/sskrkss/dr-dataset-processed-images/test.csv'
 RAW_IMAGES_DIR       = 'data/raw_images'
-IMAGES_DIR           = 'data/processed_images/processed_images'
-IMAGES_DIR_384       = 'data/processed_images_384/processed_images_384'
-MODELS_BASELINE_DIR  = 'data/models/experiments'
-MODELS_DIR           = 'data/models/experiments'
+IMAGES_DIR           = '/kaggle/input/datasets/sskrkss/dr-dataset-processed-images/processed_images/processed_images'
+IMAGES_DIR_384       = '/kaggle/input/datasets/sskrkss/dr-dataset-processed-images/processed_images_384/processed_images_384'
+MODELS_BASELINE_DIR  = '/kaggle/input/models/sskrkss/test-resnet/pytorch/default/8'
+MODELS_DIR           = '/kaggle/input/models/sskrkss/test-resnet/pytorch/default/8'
 LOSS_FN              = nn.CrossEntropyLoss()
 LOSS_FN_REG          = nn.SmoothL1Loss()
 MAX_EPOCHS           = 20
@@ -77,6 +81,9 @@ EARLY_STOPPING_FINAL = 10
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print(f'Device: {device}')
 ```
+
+    Device: cuda:0
+
 
 
 ```python
@@ -119,7 +126,18 @@ def make_train_transform(weights):
 
     return transforms.Compose([aug, weights.transforms()])
 
-
+def make_train_transform_v2(weights):
+    aug = transforms.Compose([
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomVerticalFlip(),
+        transforms.RandomRotation(180),
+        transforms.RandomAffine(degrees=0, translate=(0.2, 0.2), scale=(0.8, 1.2), shear=11.5),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.028),
+        transforms.RandomApply([transforms.GaussianBlur(kernel_size=3)], p=0.5),
+        transforms.RandomAdjustSharpness(sharpness_factor=2, p=0.3),
+    ])
+    return transforms.Compose([aug, weights.transforms()])
+    
 def plot_stats(train_loss, test_loss, title):
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.set_title(f'{title} — Loss')
@@ -278,6 +296,24 @@ def get_predictions(model, loader, desc='Inference'):
 
     return probs_out, preds_out, labels_out
 
+@torch.inference_mode()
+def get_predictions_reg(model, loader, desc='Inference'):
+    model.eval()
+    all_scores, all_preds, all_labels = [], [], []
+
+    for x, y in tqdm(loader, desc=desc, leave=True):
+        raw = model(x.to(device)).squeeze(1).cpu()
+        all_scores.append(raw.numpy())
+        all_preds.append(raw.round().clamp(0, 4).long().numpy())
+        all_labels.append(y.numpy().astype(int))
+
+    scores = np.concatenate(all_scores)
+    preds  = np.concatenate(all_preds)
+    labels = np.concatenate(all_labels)
+
+    print(f'  [{desc}] samples: {len(preds)}')
+
+    return scores, preds, labels
 
 def compute_metrics(y_true, y_pred, y_probs=None, y_scores=None):
     result = {
@@ -334,28 +370,6 @@ def show_metrics_table(rows, metric_cols, title):
 
 
 ```python
-@torch.inference_mode()
-def get_predictions_reg(model, loader, desc='Inference'):
-    model.eval()
-    all_scores, all_preds, all_labels = [], [], []
-
-    for x, y in tqdm(loader, desc=desc, leave=True):
-        raw = model(x.to(device)).squeeze(1).cpu()
-        all_scores.append(raw.numpy())
-        all_preds.append(raw.round().clamp(0, 4).long().numpy())
-        all_labels.append(y.numpy().astype(int))
-
-    scores = np.concatenate(all_scores)
-    preds  = np.concatenate(all_preds)
-    labels = np.concatenate(all_labels)
-
-    print(f'  [{desc}] samples: {len(preds)}')
-
-    return scores, preds, labels
-```
-
-
-```python
 eff_weights = EfficientNet_V2_S_Weights.DEFAULT
 model_eff_reg = efficientnet_v2_s(weights=eff_weights)
 
@@ -394,7 +408,7 @@ train_model(
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_8_0.png)
+![png](Lesson6/Lesson6_7_0.png)
     
 
 
@@ -461,11 +475,19 @@ show_metrics_table(
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_9_4.png)
+![png](Lesson6/Lesson6_8_4.png)
+    
 
 
+    
+    Дельта:
+      QWK: +0.0157
+      AUC Any DR: -0.0078
+      AUC RDR: -0.0103
+      AUC STDR: -0.0015
 
-**Вывод:** Гипотеза подтвердилась. SmoothL1Loss увеличил QWK на **+0.0157**. AUC незначительно снизился по всем порогам (Any DR −0.0078, RDR −0.0103, STDR −0.0015). В рамках данного проекта QWK в приоритете: в контексте медицинского применения важно не допускать грубых ошибок классификации. Оптимизация включена в финальную конфигурацию.
+
+**Вывод:** Гипотеза подтвердилась. SmoothL1Loss увеличил QWK на +0.0157. AUC незначительно снизился по всем порогам (Any DR −0.0078, RDR −0.0103, STDR −0.0015). В рамках данного проекта QWK в приоритете: в контексте медицинского применения важно не допускать грубых ошибок классификации. Оптимизация включена в финальную конфигурацию.
 
 ---
 
@@ -478,22 +500,6 @@ show_metrics_table(
 - `brightness 0.08 → 0.2`
 - `saturation 0.08 → 0.2`
 - `RandomAdjustSharpness(p=0.3)` (добавлено)
-
-
-```python
-def make_train_transform_v2(weights):
-    aug = transforms.Compose([
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomVerticalFlip(),
-        transforms.RandomRotation(180),
-        transforms.RandomAffine(degrees=0, translate=(0.2, 0.2), scale=(0.8, 1.2), shear=11.5),
-        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.028),
-        transforms.RandomApply([transforms.GaussianBlur(kernel_size=3)], p=0.5),
-        transforms.RandomAdjustSharpness(sharpness_factor=2, p=0.3),
-    ])
-    return transforms.Compose([aug, weights.transforms()])
-
-```
 
 
 ```python
@@ -533,7 +539,7 @@ train_model(
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_13_0.png)
+![png](Lesson6/Lesson6_11_0.png)
     
 
 
@@ -594,7 +600,16 @@ show_metrics_table(
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_14_4.png)
+![png](Lesson6/Lesson6_12_4.png)
+    
+
+
+    
+    Дельта:
+      QWK: +0.0040
+      AUC Any DR: +0.0017
+      AUC RDR: +0.0015
+      AUC STDR: -0.0003
 
 
 **Вывод:** Результат неоднозначный: QWK +0.0040, AUC Any DR +0.0017, AUC RDR +0.0015, AUC STDR −0.0003. Небольшой прирост может быть шумом. Тем не менее данная оптимизация включена в финальную конфигурацию.
@@ -604,6 +619,7 @@ show_metrics_table(
 ### 6.1.3 Увеличение разрешения снимков до 384×384
 
 **Гипотеза:** При предобработке снимков разрешение было уменьшено до 224×224. При таком разрешении ранние признаки ДР (микроаневризмы, мягкий экссудат) могут теряться и не распознаваться моделью.
+
 
 ```python
 path_map_raw = {}
@@ -698,7 +714,7 @@ train_model(
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_19_0.png)
+![png](Lesson6/Lesson6_17_0.png)
     
 
 
@@ -760,7 +776,16 @@ show_metrics_table(
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_20_4.png)
+![png](Lesson6/Lesson6_18_4.png)
+    
+
+
+    
+    Дельта:
+      QWK: +0.0403
+      AUC Any DR: +0.0219
+      AUC RDR: +0.0190
+      AUC STDR: +0.0028
 
 
 **Вывод:** Гипотеза подтвердилась. QWK вырос на +0.0403, AUC Any DR +0.0219, AUC RDR +0.0190, AUC STDR +0.0028. Разрешение оказалось главным фактором прироста метрик из трех проверенных. Оптимизация включена в финальную конфигурацию.
@@ -806,13 +831,15 @@ train_model(
 )
 ```
 
+
     
-![png](data/notebooks/Lesson6/Lesson6_24_0.png)
+![png](Lesson6/Lesson6_21_0.png)
     
 
 
     Epoch 30/30 | Train 0.1497 | Test 0.1508
-    Сохранено: data/models/experiments/efficientnetv2s_final.pth
+    Сохранено: /content/efficientnetv2s_final.pth
+
 
 
 ```python
@@ -856,23 +883,284 @@ show_metrics_table(
 ```
 
 
+
     
-![png](data/notebooks/Lesson6/Lesson6_25_4.png)
+![png](Lesson6/Lesson6_22_4.png)
     
 
 
+    
     Дельта:
-      QWK: +0.0659
+      QWK: +0.0658
       AUC Any DR: +0.0273
       AUC RDR: +0.0179
       AUC STDR: -0.0001
 
 
+**Вывод:** Применение всех оптимизаций и увеличение числа эпох до 30 дало прирост QWK +0.0659 (+9.3%), AUC Any DR +0.0273 (+3.2%), AUC RDR +0.0178 (+2.0%). AUC STDR остался без изменений.
+
 ---
 
 ## 6.3 Подробный анализ метрик и ошибок модели после оптимизации
 
-Кристина, здравствуйте. Если вы читаете это, раздел будет заполнен до 22.06 23:59.
+
+### 6.3.1 Метрики по классам
+
+
+```python
+CLASS_NAMES = ['No DR', 'Mild', 'Moderate', 'Severe', 'Proliferative']
+
+precision, recall, f1, support = precision_recall_fscore_support(
+    labels_final, preds_final, labels=range(5))
+
+total = support.sum()
+rows = [[f'{p:.3f}', f'{r:.3f}', f'{f:.3f}', f'{s}', f'{s/total*100:.1f}%']
+        for p, r, f, s in zip(precision, recall, f1, support)]
+cols = ['Precision', 'Recall', 'F1-score', 'Count', '% of dataset']
+
+fig, ax = plt.subplots(figsize=(13, 2.4))
+ax.axis('off')
+tbl = ax.table(cellText=rows, rowLabels=CLASS_NAMES, colLabels=cols,
+               cellLoc='center', loc='center')
+tbl.auto_set_font_size(False)
+tbl.set_fontsize(9)
+tbl.scale(1, 1.5)
+
+best_f1  = int(np.argmax(f1))
+worst_f1 = int(np.argmin(f1))
+for j in range(len(cols)):
+    tbl[best_f1  + 1, j].set_facecolor('#d4edda')
+    tbl[worst_f1 + 1, j].set_facecolor('#f8d7da')
+
+plt.title('Per-class Metrics', fontsize=12, pad=10)
+plt.tight_layout()
+plt.show()
+```
+
+
+    
+![png](Lesson6/Lesson6_26_0.png)
+    
+
+
+**Вывод:**
+1. **No DR** — результат высокий, однако это следствие доминирования класса в выборке (≈73%). Модель минимизирует ошибку, предсказывая норму, а не распознавая ее.
+2. **Mild** — модель практически не обнаруживает раннюю стадию ДР. Граница между Mild и нормой размыта даже для эксперта.
+3. **Moderate** — второй по качеству среди патологических классов. Достаточная представленность в выборке (≈15%) позволила модели выучить его признаки.
+4. **Severe** — результат хуже, чем у Proliferative при схожей доле в выборке (≈2%): патологические изменения на этой стадии менее специфичны и труднее отличимы от Moderate.
+5. **Proliferative** — результат выше ожидаемого для класса с долей ≈2%. Выраженность патологических изменений позволяет модели уверенно отличать ее от остальных классов.
+
+### 6.3.2 Анализ ошибок
+
+
+```python
+cm = confusion_matrix(labels_final, preds_final)
+
+fig, ax = plt.subplots(figsize=(7, 6))
+im = ax.imshow(cm, cmap='Blues')
+plt.colorbar(im, ax=ax)
+
+ax.set_xticks(range(5)); ax.set_yticks(range(5))
+ax.set_xticklabels(CLASS_NAMES, rotation=30, ha='right')
+ax.set_yticklabels(CLASS_NAMES)
+ax.set_xlabel('Predicted')
+ax.set_ylabel('True label')
+ax.set_title('Confusion Matrix')
+
+thresh = cm.max() / 2
+for i in range(5):
+    for j in range(5):
+        ax.text(j, i, str(cm[i, j]), ha='center', va='center',
+                color='white' if cm[i, j] > thresh else 'black', fontsize=9)
+
+plt.tight_layout()
+plt.show()
+```
+
+
+    
+![png](Lesson6/Lesson6_29_0.png)
+    
+
+
+
+```python
+errors_list = [
+    (CLASS_NAMES[i], CLASS_NAMES[j], cm[i, j], abs(i - j))
+    for i in range(5) for j in range(5) if i != j
+]
+top5 = sorted(errors_list, key=lambda x: -x[2])[:5]
+
+rows_err = [[t, p, str(n)] for t, p, n, _ in top5]
+cols_err  = ['True', 'Predicted', 'Count']
+
+fig, ax = plt.subplots(figsize=(8, 2.0))
+ax.axis('off')
+tbl = ax.table(cellText=rows_err, colLabels=cols_err, cellLoc='center', loc='center')
+tbl.auto_set_font_size(False)
+tbl.set_fontsize(9)
+tbl.scale(1, 1.5)
+
+for i, (_, _, _, dist) in enumerate(top5):
+    if dist >= 2:
+        for j in range(len(cols_err)):
+            tbl[i + 1, j].set_facecolor('#f8d7da')
+
+plt.title('Top-5 Misclassifications', fontsize=12, pad=10)
+plt.subplots_adjust(top=0.82)
+plt.show()
+```
+
+
+    
+![png](Lesson6/Lesson6_30_0.png)
+    
+
+
+
+```python
+test_df = pd.read_csv(TEST_DF_PATH).reset_index(drop=True)
+
+target_idx = np.where((labels_final == 2) & (preds_final == 0))[0]
+rng = np.random.default_rng(42)
+sample_idx = rng.choice(target_idx, size=min(12, len(target_idx)), replace=False)
+sample_idx = sorted(sample_idx)
+
+fig, axes = plt.subplots(3, 4, figsize=(14, 11))
+for ax, idx in zip(axes.flat, sample_idx):
+    id_code = test_df.iloc[idx]['id_code']
+    img = plt.imread(find_image(IMAGES_DIR_384, id_code))
+    ax.imshow(img)
+    ax.set_title(
+        f'True: {CLASS_NAMES[labels_final[idx]]}\nPred: {CLASS_NAMES[preds_final[idx]]}',
+        fontsize=8, color='darkred'
+    )
+    ax.axis('off')
+
+plt.suptitle(
+    f'Gross Errors: Moderate → No DR',
+    fontsize=12, y=1.01
+)
+plt.tight_layout()
+plt.show()
+```
+
+
+    
+![png](Lesson6/Lesson6_31_0.png)
+    
+
+
+**Вывод:**
+1. Основная масса ошибок сосредоточена на ранних стадиях: Mild→No DR (1046 случаев) и Moderate→No DR (719 случаев) — два крупнейших источника ошибок модели. Ранние признаки ДР визуально схожи с нормой, и модель систематически предпочитает более безопасный класс.
+2. Среди примеров грубых ошибок (Moderate→No DR) заметна доля снимков низкого качества: размытые, переэкспонированные или низкоконтрастные изображения, на которых микроаневризмы и мягкий экссудат практически неразличимы. Качество данных является отдельным источником ошибок, не связанным с архитектурой модели.
+3. Грубые ошибки (расстояние между классами ≥ 2) редки: модель, как правило, ошибается на соседних классах, что соответствует ожидаемому поведению при регрессионном лоссе.
+
+### 6.3.3 Чувствительность и специфичность
+
+
+```python
+rows_ss = []
+for task_name, min_grade, _ in ('Any DR', 'RDR', 'STDR'):
+    y_bin      = (labels_final >= min_grade).astype(int)
+    y_pred_bin = (preds_final  >= min_grade).astype(int)
+    tn, fp, fn, tp = confusion_matrix(y_bin, y_pred_bin).ravel()
+    rows_ss.append([f'{tp / (tp + fn):.4f}', f'{tn / (tn + fp):.4f}'])
+
+fig, ax = plt.subplots(figsize=(6, 1.6))
+ax.axis('off')
+tbl = ax.table(cellText=rows_ss,
+               rowLabels=[t for t in ('Any DR', 'RDR', 'STDR')],
+               colLabels=['Sensitivity', 'Specificity'],
+               cellLoc='center', loc='center')
+tbl.auto_set_font_size(False)
+tbl.set_fontsize(9)
+tbl.scale(1, 1.5)
+plt.title('Sensitivity & Specificity', fontsize=12, pad=10)
+plt.tight_layout()
+plt.show()
+```
+
+
+    
+![png](Lesson6/Lesson6_34_0.png)
+    
+
+
+**Вывод:** Модель предсказывает непрерывное значение, которое округляется до ближайшего класса. При таком подходе чувствительность составляет ~0.64 при специфичности 0.94–0.99. В скрининге чувствительность важнее специфичности: цена пропущенного заболевания выше цены ложной тревоги. В разделе 6.3.4 порог выбирается явно под целевую чувствительность.
+
+### 6.3.4 Выбор рабочей точки на ROC-кривой
+
+| Порог | Цель |
+|--------|-----------------|
+| Any DR (grade ≥ 1) | Sens ≥ 0.80 |
+| RDR (grade ≥ 2) | Sens ≥ 0.85 |
+| STDR (grade ≥ 3) | Sens ≥ 0.90 |
+
+
+```python
+CLINICAL_TARGETS = [
+    ('Any DR', 1, 0.80),
+    ('RDR',    2, 0.85),
+    ('STDR',   3, 0.90),
+]
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+results = {}
+
+for ax, (task_name, min_grade, target_sens) in zip(axes, CLINICAL_TARGETS):
+    y_bin = (labels_final >= min_grade).astype(int)
+    fpr, tpr, ths = roc_curve(y_bin, scores_final)
+    auc = roc_auc_score(y_bin, scores_final)
+
+    idx = np.argmin(np.abs(tpr - target_sens))
+    chosen_thr  = float(ths[idx])
+    chosen_sens = float(tpr[idx])
+    chosen_spec = float(1 - fpr[idx])
+    results[task_name] = {'threshold': chosen_thr, 'sens': chosen_sens, 'spec': chosen_spec, 'auc': auc}
+
+    ax.plot(fpr, tpr, lw=2, label=f'AUC = {auc:.3f}')
+    ax.plot(fpr[idx], tpr[idx], '*', markersize=14, color='red',
+            label=f'Sens={chosen_sens:.2f}  Spec={chosen_spec:.2f}')
+    ax.plot([0, 1], [0, 1], 'k--', lw=0.8)
+    ax.set_xlabel('1 − Specificity')
+    ax.set_ylabel('Sensitivity')
+    ax.set_title(task_name)
+    ax.legend(fontsize=9)
+    ax.grid(alpha=0.3)
+
+plt.suptitle('ROC Curves & Operating Point Selection', fontsize=13)
+plt.tight_layout()
+plt.show()
+
+cols = ['Threshold', 'Sensitivity', 'Specificity', 'AUC']
+rows = [[f"{r['threshold']:.4f}", f"{r['sens']:.4f}", f"{r['spec']:.4f}", f"{r['auc']:.4f}"]
+        for r in results.values()]
+
+fig, ax = plt.subplots(figsize=(9, 1.6))
+ax.axis('off')
+tbl = ax.table(cellText=rows, rowLabels=list(results.keys()), colLabels=cols,
+               cellLoc='center', loc='center')
+tbl.auto_set_font_size(False)
+tbl.set_fontsize(9)
+tbl.scale(1, 1.5)
+plt.tight_layout()
+plt.show()
+```
+
+
+    
+![png](Lesson6/Lesson6_37_0.png)
+    
+
+
+
+    
+![png](Lesson6/Lesson6_37_1.png)
+    
+
+
+**Вывод:** Для каждой клинической задачи удалось подобрать порог, при котором достигается целевая чувствительность. Ценой является снижение специфичности: для RDR и STDR значения приемлемы (0.87 и 0.92), для Any DR — чуть ниже порога (0.77 при минимуме 0.80), что объяснимо размытостью границы между нормой и ранней патологией.
 
 ---
 
