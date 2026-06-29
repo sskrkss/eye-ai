@@ -1,0 +1,29 @@
+/* ========== AUTH SPECIFIC STYLES ========== */
+.auth-page .card {
+    max-width: 100%;
+}
+
+.auth-page .logo {
+    margin-bottom: 24px;
+}
+
+/* Password match validation (classes set by sign_up.js) */
+#confirm_password {
+    transition: border-color 0.2s ease;
+}
+
+#confirm_password.password-match {
+    border-color: #28a745;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%2328a745'%3E%3Cpath d='M20.285 6.708l-11.99 11.99-4.95-4.95 1.414-1.414 3.536 3.536L18.87 5.294z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px;
+}
+
+#confirm_password.password-mismatch {
+    border-color: #dc3545;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%23dc3545'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px;
+}

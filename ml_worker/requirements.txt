@@ -1,0 +1,6 @@
+pika
+requests
+python-jose
+opencv-python-headless
+Pillow
+numpy

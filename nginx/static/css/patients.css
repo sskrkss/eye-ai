@@ -1,0 +1,161 @@
+/* ========== TOP BAR ========== */
+.top-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+    margin-bottom: 24px;
+    border: 1px solid #f0f0f0;
+}
+
+.top-bar-left, .top-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.top-bar-right { margin-left: auto; }
+
+.top-bar .btn-outline, .auth-buttons .btn-outline {
+    background: white !important;
+    border: 1px solid #6b8cff !important;
+    color: #6b8cff !important;
+    padding: 6px 16px !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    height: 32px !important;
+    line-height: 1 !important;
+}
+
+.top-bar .btn-outline:hover, .auth-buttons .btn-outline:hover {
+    background: #6b8cff !important;
+    color: white !important;
+}
+
+.top-bar .btn-primary, .auth-buttons .btn-primary {
+    background: #6b8cff !important;
+    border: 1px solid #6b8cff !important;
+    color: white !important;
+    padding: 6px 16px !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    height: 32px !important;
+    line-height: 1 !important;
+}
+
+.top-bar .btn-primary:hover, .auth-buttons .btn-primary:hover {
+    background: #5a7ae0 !important;
+}
+
+.user-section .btn-outline-danger {
+    background: white !important;
+    border: 1px solid #dc3545 !important;
+    color: #dc3545 !important;
+    padding: 6px 16px !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    height: 32px !important;
+    line-height: 1 !important;
+}
+
+.user-section .btn-outline-danger:hover {
+    background: #dc3545 !important;
+    color: white !important;
+}
+
+.user-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 32px;
+}
+
+.avatar {
+    width: 32px;
+    height: 32px;
+    background: #336699;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    flex-shrink: 0;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.user-name { font-size: 13px; font-weight: 600; color: #333; }
+.user-email { font-size: 11px; color: #666; }
+
+/* ========== PATIENTS LIST ========== */
+.patients-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.patients-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #222;
+}
+
+.patients-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.patients-table th {
+    text-align: left;
+    padding: 14px 20px;
+    background: #f8f9fa;
+    color: #495057;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.patients-table td {
+    padding: 14px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    color: #333;
+    vertical-align: middle;
+}
+
+.patients-table tr:last-child td { border-bottom: none; }
+
+.patient-row {
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.patient-row:hover { background: #f5f8ff; }
+
+.patient-name { font-weight: 500; }
+
+@media (max-width: 768px) {
+    .top-bar { flex-direction: column; align-items: stretch; }
+    .top-bar-left, .top-bar-right { justify-content: center; }
+    .top-bar-right { margin-left: 0; }
+    .patients-table th:nth-child(2),
+    .patients-table td:nth-child(2) { display: none; }
+}

@@ -93,13 +93,13 @@ data/raw_images/
 
 
     
-![png](data/notebooks/Lesson4/Lesson4_12_0.png)
+![png](Lesson4/Lesson4_12_0.png)
     
 
 
 
     
-![png](data/notebooks/Lesson4/Lesson4_13_0.png)
+![png](Lesson4/Lesson4_13_0.png)
     
 
 
@@ -111,13 +111,13 @@ data/raw_images/
 
 
     
-![png](data/notebooks/Lesson4/Lesson4_15_1.png)
+![png](Lesson4/Lesson4_15_1.png)
     
 
 
 
     
-![png](data/notebooks/Lesson4/Lesson4_16_0.png)
+![png](Lesson4/Lesson4_16_0.png)
     
 
 
@@ -128,19 +128,19 @@ data/raw_images/
 ### 4.3.3 Яркость и резкость
 
     
-![png](data/notebooks/Lesson4/Lesson4_19_0.png)
+![png](Lesson4/Lesson4_19_0.png)
     
 
 
 
     
-![png](data/notebooks/Lesson4/Lesson4_20_0.png)
+![png](Lesson4/Lesson4_20_0.png)
     
 
 
 
     
-![png](data/notebooks/Lesson4/Lesson4_21_0.png)
+![png](Lesson4/Lesson4_21_0.png)
     
 
 
@@ -154,7 +154,7 @@ data/raw_images/
 
 
     
-![png](data/notebooks/Lesson4/Lesson4_24_0.png)
+![png](Lesson4/Lesson4_24_0.png)
     
 
 
@@ -164,7 +164,7 @@ data/raw_images/
 
 
     
-![png](data/notebooks/Lesson4/Lesson4_26_0.png)
+![png](Lesson4/Lesson4_26_0.png)
     
 
 
@@ -174,7 +174,7 @@ data/raw_images/
 
 
     
-![png](data/notebooks/Lesson4/Lesson4_28_0.png)
+![png](Lesson4/Lesson4_28_0.png)
     
 
 
@@ -188,7 +188,7 @@ data/raw_images/
 
 
     
-![png](data/notebooks/Lesson4/Lesson4_31_0.png)
+![png](Lesson4/Lesson4_31_0.png)
 
 ### 4.4.2 Разбиение датасета на train/test
 

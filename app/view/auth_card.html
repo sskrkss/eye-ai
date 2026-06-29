@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/auth.css">
+{% endblock %}
+
+{% block content %}
+<div class="container-sm auth-page">
+    <div id="langSwitcher" class="lang-switcher-fixed"></div>
+    <div class="card">
+        <div class="logo">
+            <span class="logo-icon">👁️</span>
+            <span class="logo-text">eye</span>
+            <span class="logo-dot">.ai</span>
+        </div>
+
+        <div id="result" class="result-message"></div>
+
+        {% block form %}{% endblock %}
+
+        <div class="auth-footer">
+            {% block auth_footer %}{% endblock %}
+        </div>
+    </div>
+</div>
+{% block auth_scripts %}{% endblock %}
+{% endblock %}

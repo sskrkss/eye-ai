@@ -1,0 +1,31 @@
+{% extends "auth_card.html" %}
+
+{% block title %}Sign in · eye.ai{% endblock %}
+
+{% block form %}
+<form id="signInForm" onsubmit="return false;">
+    <div class="form-group">
+        <label for="email_or_username" class="form-label" data-i18n="email_or_username">Email or username</label>
+        <input type="text" id="email_or_username" name="email_or_username"
+               placeholder="your@email.com or username" data-i18n-ph="ph_login" class="form-input"
+               autocomplete="username" required>
+    </div>
+    <div class="form-group">
+        <label for="plain_password" class="form-label" data-i18n="password">Password</label>
+        <input type="password" id="plain_password" name="plain_password"
+               placeholder="••••••••" class="form-input"
+               autocomplete="current-password" required>
+    </div>
+    <button type="submit" id="submitBtn" class="btn btn-primary btn-block" data-i18n="signin_btn">Sign in</button>
+</form>
+{% endblock %}
+
+{% block auth_footer %}
+<span class="text-muted" data-i18n="no_account">No account?</span>
+<a href="/sign-up" class="auth-link" data-i18n="create_one">Create one</a>
+{% endblock %}
+
+{% block auth_scripts %}
+<script src="/static/js/auth-common.js"></script>
+<script src="/static/js/sign_in.js"></script>
+{% endblock %}

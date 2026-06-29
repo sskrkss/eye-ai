@@ -368,7 +368,7 @@ plt.show()
 ```
 
     
-![png](data/notebooks/Lesson5/Lesson5_15_0.png)
+![png](Lesson5/Lesson5_15_0.png)
     
 
 ```python
@@ -395,7 +395,7 @@ plt.show()
 ```
 
     
-![png](data/notebooks/Lesson5/Lesson5_16_0.png)
+![png](Lesson5/Lesson5_16_0.png)
     
 
 **Вывод:** Классы распределены неравномерно — на класс No DR приходится 72.7% всех снимков, тогда как доля некоторых других классов опускается ниже 3%. При оценке модели следует выбирать метрики, устойчивые к дисбалансу классов; при разбивке на выборки (train/val/test) — применять стратификацию.
@@ -436,7 +436,7 @@ plt.show()
 ```
 
     
-![png](data/notebooks/Lesson5/Lesson5_18_1.png)
+![png](Lesson5/Lesson5_18_1.png)
     
 
 ```python
@@ -478,7 +478,7 @@ plt.show()
 ```
 
     
-![png](data/notebooks/Lesson5/Lesson5_20_0.png)
+![png](Lesson5/Lesson5_20_0.png)
     
 
 **Вывод:** Снимки имеют разные разрешения и aspect ratio, большинство — прямоугольные. Для обучения моделей необходимо привести все изображения к единому разрешению 224×224. Чтобы не искажать пропорции, используем паддинг: сначала обрезаем черный фон по контуру глаза, затем дополняем черными полями до квадрата и только потом ресайзим. 2 снимка с разрешением меньше 224×224 будут исключены из выборки.
@@ -535,7 +535,7 @@ plt.show()
 ```
 
     
-![png](data/notebooks/Lesson5/Lesson5_23_0.png)
+![png](Lesson5/Lesson5_23_0.png)
     
 
 ```python
@@ -638,7 +638,7 @@ plt.show()
 ```
 
     
-![png](data/notebooks/Lesson5/Lesson5_25_0.png)
+![png](Lesson5/Lesson5_25_0.png)
     
 
 ```python
@@ -676,7 +676,7 @@ plt.show()
 ```
 
     
-![png](data/notebooks/Lesson5/Lesson5_26_0.png)
+![png](Lesson5/Lesson5_26_0.png)
     
 
 **Вывод:** Измерены две метрики фотометрического качества: **яркость** (средняя интенсивность пикселей FOV) и **резкость** (дисперсия лапласиана). Оба показателя имеют широкий разброс: среди снимков есть экстремально темные (недоэкспонированные) и экстремально светлые (переэкспонированные), а также выражено размытые.
@@ -706,7 +706,7 @@ plt.show()
 ```
 
     
-![png](data/notebooks/Lesson5/Lesson5_29_0.png)
+![png](Lesson5/Lesson5_29_0.png)
     
 
 ---
@@ -724,7 +724,7 @@ plt.show()
 ```
 
     
-![png](data/notebooks/Lesson5/Lesson5_31_0.png)
+![png](Lesson5/Lesson5_31_0.png)
     
 
 ---
@@ -742,7 +742,7 @@ plt.show()
 ```
 
     
-![png](data/notebooks/Lesson5/Lesson5_33_0.png)
+![png](Lesson5/Lesson5_33_0.png)
     
 
 **Вывод:** В датасете присутствуют три типа визуальных артефактов: **блики** (отражение вспышки, маскирующее центральные структуры), **смещение** (камера захватила глазное дно со сдвигом, часть анатомических структур вышла за границу кадра) и **пятна на объективе** (загрязнения линзы, одинаково проявляющиеся на снимках одного устройства). Автоматически обнаружить такие артефакты затруднительно, а ручная фильтрация при объеме в 92 000 снимков нецелесообразна — поэтому все снимки остаются в датасете. В перспективе можно попробовать разработать детектор артефактов и проверить, улучшит ли фильтрация качество модели.
@@ -844,7 +844,7 @@ plt.show()
 ```
 
     
-![png](data/notebooks/Lesson5/Lesson5_40_0.png)
+![png](Lesson5/Lesson5_40_0.png)
     
 
 ```python
@@ -1288,7 +1288,7 @@ train_model(
 
 
     
-![png](data/notebooks/Lesson5/Lesson5_60_0.png)
+![png](Lesson5/Lesson5_60_0.png)
     
 
 
@@ -1336,7 +1336,7 @@ train_model(
 
 
     
-![png](data/notebooks/Lesson5/Lesson5_62_0.png)
+![png](Lesson5/Lesson5_62_0.png)
     
 
 
@@ -1386,7 +1386,7 @@ train_model(
 
 
     
-![png](data/notebooks/Lesson5/Lesson5_64_0.png)
+![png](Lesson5/Lesson5_64_0.png)
     
 
 
@@ -1437,7 +1437,7 @@ train_model(
 
 
     
-![png](data/notebooks/Lesson5/Lesson5_66_0.png)
+![png](Lesson5/Lesson5_66_0.png)
     
 
 
@@ -1488,7 +1488,7 @@ train_model(
 
 
     
-![png](data/notebooks/Lesson5/Lesson5_68_0.png)
+![png](Lesson5/Lesson5_68_0.png)
     
 
 
@@ -1538,7 +1538,7 @@ train_model(
 
 
     
-![png](data/notebooks/Lesson5/Lesson5_70_0.png)
+![png](Lesson5/Lesson5_70_0.png)
     
 
 
@@ -1878,7 +1878,7 @@ plt.show()
 
 
     
-![png](data/notebooks/Lesson5/Lesson5_81_0.png)
+![png](Lesson5/Lesson5_81_0.png)
     
 
 
@@ -1910,7 +1910,7 @@ plt.show()
 
 
     
-![png](data/notebooks/Lesson5/Lesson5_82_0.png)
+![png](Lesson5/Lesson5_82_0.png)
     
 
 
@@ -1967,7 +1967,7 @@ plt.show()
 
 
     
-![png](data/notebooks/Lesson5/Lesson5_83_0.png)
+![png](Lesson5/Lesson5_83_0.png)
     
 
 

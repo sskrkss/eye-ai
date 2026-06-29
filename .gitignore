@@ -3,9 +3,24 @@ __pycache__/
 *.pyc
 .ipynb_checkpoints/
 
+CLAUDE.md
+
 venv/
 .venv/
-.env
+.env.*
+
+# coverage artifacts
+.coverage
+.coverage.*
+htmlcov/
+
+nginx/ssl/
+*.key
+*.pem
+*.crt
+*.csr
+
+testing.db
 
 data/raw_images/
 data/processed_images/

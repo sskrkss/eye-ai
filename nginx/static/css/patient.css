@@ -1,0 +1,245 @@
+/* ========== BACK BUTTON ========== */
+.back-btn {
+    font-size: 13px;
+    font-weight: 500;
+    color: #6b8cff;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.back-btn:hover { text-decoration: underline; }
+
+/* ========== PATIENT HEADER ========== */
+.patient-header {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+
+.patient-full-name {
+    font-size: 22px;
+    font-weight: 700;
+    color: #222;
+    margin: 0 0 8px;
+}
+
+.patient-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 14px;
+    color: #555;
+}
+
+.meta-sep { color: #ccc; }
+
+/* ========== UPLOAD CARD ========== */
+.upload-card {
+    margin-bottom: 24px;
+}
+
+.upload-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 14px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: white;
+}
+
+.upload-status.error {
+    background: rgba(255,100,100,0.15);
+    border-color: rgba(255,100,100,0.3);
+}
+
+/* ========== HISTORY TABLE ========== */
+.section-header {
+    margin-bottom: 16px;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #222;
+}
+
+.prediction-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.prediction-table th {
+    text-align: left;
+    padding: 14px 20px;
+    background: #f8f9fa;
+    color: #495057;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #e9ecef;
+    white-space: nowrap;
+}
+
+.prediction-table td {
+    padding: 14px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    color: #333;
+    vertical-align: middle;
+}
+
+.prediction-table tr:last-child td { border-bottom: none; }
+.prediction-table tr:hover { background: #fafafa; }
+
+.task-date {
+    white-space: nowrap;
+    font-size: 13px;
+    color: #555;
+}
+
+.task-filename {
+    font-size: 13px;
+    color: #555;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.task-actions { white-space: nowrap; }
+
+.no-conclusion { color: #bbb; }
+
+/* ========== UPLOAD CARD INNER (reused from index.css logic) ========== */
+.card-gradient {
+    background: linear-gradient(135deg, #6b8cff 0%, #8a6bff 100%);
+    border-radius: 16px;
+    padding: 25px;
+    color: white;
+}
+
+.ml-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.ml-title {
+    font-size: 14px;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.ml-form {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+}
+
+.ml-input-group { flex: 1; }
+
+.ml-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 140px;
+    flex-shrink: 0;
+}
+
+.ml-btn {
+    padding: 0 16px;
+    height: 40px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    color: #6b8cff;
+    border: 1px solid #6b8cff;
+    box-sizing: border-box;
+}
+
+.ml-btn:hover { background: #6b8cff; color: white; transform: translateY(-1px); }
+.ml-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.badge {
+    opacity: 0.9;
+    font-size: 13px;
+    font-weight: 500;
+    background: rgba(255,255,255,0.15);
+    padding: 4px 10px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.2);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.badge-group { display: flex; gap: 8px; }
+
+.file-drop-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 90px;
+    border: 2px dashed rgba(255,255,255,0.4);
+    border-radius: 10px;
+    background: rgba(255,255,255,0.08);
+    cursor: pointer;
+    transition: all 0.2s;
+    box-sizing: border-box;
+    padding: 14px;
+}
+
+.file-drop-area:hover,
+.file-drop-area.drag-over {
+    background: rgba(255,255,255,0.18);
+    border-color: rgba(255,255,255,0.7);
+}
+
+.file-drop-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+}
+
+.file-drop-icon { font-size: 24px; }
+.file-drop-text { font-size: 14px; color: white; font-weight: 500; }
+.file-drop-hint { font-size: 12px; color: rgba(255,255,255,0.7); }
+
+.file-preview {
+    max-width: 100%;
+    max-height: 150px;
+    border-radius: 8px;
+    object-fit: contain;
+    border: 1px solid rgba(255,255,255,0.35);
+    margin-bottom: 4px;
+}
+
+/* ========== MEDIA QUERIES ========== */
+@media (max-width: 768px) {
+    .ml-form { flex-direction: column; align-items: stretch; }
+    .ml-actions { width: 100%; }
+    .prediction-table th:nth-child(4),
+    .prediction-table td:nth-child(4) { display: none; }
+}
