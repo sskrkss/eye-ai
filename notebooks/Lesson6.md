@@ -408,7 +408,7 @@ train_model(
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_7_0.png)
+![png](Lesson6/Lesson6_7_0.png)
     
 
 
@@ -464,7 +464,7 @@ show_metrics_table(
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_8_4.png)
+![png](Lesson6/Lesson6_8_4.png)
     
 
 
@@ -528,7 +528,7 @@ train_model(
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_11_0.png)
+![png](Lesson6/Lesson6_11_0.png)
     
 
 
@@ -578,7 +578,7 @@ show_metrics_table(
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_12_4.png)
+![png](Lesson6/Lesson6_12_4.png)
     
 
 
@@ -691,7 +691,7 @@ train_model(
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_17_0.png)
+![png](Lesson6/Lesson6_17_0.png)
     
 
 
@@ -741,7 +741,7 @@ show_metrics_table(
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_18_4.png)
+![png](Lesson6/Lesson6_18_4.png)
     
 
 
@@ -798,7 +798,7 @@ train_model(
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_21_0.png)
+![png](Lesson6/Lesson6_21_0.png)
     
 
 
@@ -850,7 +850,7 @@ show_metrics_table(
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_22_4.png)
+![png](Lesson6/Lesson6_22_4.png)
     
 
 
@@ -904,7 +904,7 @@ plt.show()
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_26_0.png)
+![png](Lesson6/Lesson6_26_0.png)
     
 
 
@@ -944,7 +944,7 @@ plt.show()
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_29_0.png)
+![png](Lesson6/Lesson6_29_0.png)
     
 
 
@@ -978,7 +978,7 @@ plt.show()
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_30_0.png)
+![png](Lesson6/Lesson6_30_0.png)
     
 
 
@@ -1012,7 +1012,7 @@ plt.show()
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_31_0.png)
+![png](Lesson6/Lesson6_31_0.png)
     
 
 
@@ -1048,7 +1048,7 @@ plt.show()
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_34_0.png)
+![png](Lesson6/Lesson6_34_0.png)
     
 
 
@@ -1115,13 +1115,13 @@ plt.show()
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_37_0.png)
+![png](Lesson6/Lesson6_37_0.png)
     
 
 
 
     
-![png](data/notebooks/Lesson6/Lesson6_37_1.png)
+![png](Lesson6/Lesson6_37_1.png)
     
 
 
