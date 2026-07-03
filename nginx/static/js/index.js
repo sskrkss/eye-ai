@@ -29,6 +29,11 @@ const TRASH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" s
 // ========== STATE ==========
 let currentUser = null;
 let licensesCache = [];
+let patientsCache = [];
+let diagnosisFilter = '';
+
+// diagnosis values in severity order (matches Diagnosis enum in app/models/enums.py)
+const DIAGNOSIS_OPTIONS = ['no_dr', 'mild_dr', 'moderate_dr', 'severe_dr', 'proliferative_dr', 'unknown'];
 
 // ========== API ==========
 const fetchOpts = { credentials: 'include' };
@@ -106,13 +111,24 @@ const templates = {
             <td>${templates.diagnosisBadge(p.current_diagnosis)}</td>
         </tr>`,
 
+    diagnosisFilter: () => `
+        <select class="filter-select" aria-label="${t('filter_diagnosis')}" onchange="setDiagnosisFilter(this.value)">
+            <option value="">${t('filter_all')}</option>
+            ${DIAGNOSIS_OPTIONS.map((d) =>
+                `<option value="${d}"${diagnosisFilter === d ? ' selected' : ''}>${diagnosisLabel(d)}</option>`
+            ).join('')}
+        </select>`,
+
     patientTable: (patients) => `
         <div class="patients-header">
             <h2 class="patients-title">${t('patients_title')}</h2>
-            <button onclick="openAddPatientModal()" class="btn btn-primary btn-sm">${t('add_patient')}</button>
+            <div class="patients-header-actions">
+                ${patientsCache.length > 0 ? templates.diagnosisFilter() : ''}
+                <button onclick="openAddPatientModal()" class="btn btn-primary btn-sm">${t('add_patient')}</button>
+            </div>
         </div>
         ${patients.length === 0
-            ? `<div class="empty-state"><div class="empty-icon">🏥</div><p>${t('no_patients')}</p></div>`
+            ? `<div class="empty-state"><div class="empty-icon">🏥</div><p>${diagnosisFilter ? t('no_patients_filtered') : t('no_patients')}</p></div>`
             : `<div class="table-container">
                 <table class="patients-table">
                     <thead><tr><th>${t('th_name')}</th><th>${t('th_age')}</th><th>${t('th_gender')}</th><th>${t('th_diagnosis')}</th></tr></thead>
@@ -470,9 +486,23 @@ async function submitEditLicense(id) {
 // ========== PATIENT LIST ==========
 async function renderPatientList() {
     const response = await api.getPatients();
-    const patients = response.ok ? await response.json() : [];
+    patientsCache = response.ok ? await response.json() : [];
+    renderPatientTable();
+}
+
+// re-renders the table from the cache applying the current diagnosis filter (no re-fetch)
+function renderPatientTable() {
     const el = document.getElementById('patientList');
-    if (el) el.innerHTML = templates.patientTable(patients);
+    if (!el) return;
+    const patients = diagnosisFilter
+        ? patientsCache.filter((p) => p.current_diagnosis === diagnosisFilter)
+        : patientsCache;
+    el.innerHTML = templates.patientTable(patients);
+}
+
+function setDiagnosisFilter(value) {
+    diagnosisFilter = value;
+    renderPatientTable();
 }
 
 // ========== ADD PATIENT MODAL ==========
