@@ -1,0 +1,58 @@
+{% extends "auth_card.html" %}
+
+{% block title %}Sign up · eye.ai{% endblock %}
+
+{% block form %}
+<form id="signUpForm" onsubmit="return false;">
+    <div class="form-group">
+        <label for="company_name" class="form-label" data-i18n="company_name">Company name</label>
+        <input type="text" id="company_name" name="company_name" placeholder="City Hospital №1" data-i18n-ph="ph_company"
+               class="form-input" autocomplete="organization" required>
+    </div>
+    <div class="form-group">
+        <label for="last_name" class="form-label" data-i18n="f_last_name">Last name</label>
+        <input type="text" id="last_name" name="last_name" class="form-input" autocomplete="family-name" required>
+    </div>
+    <div class="form-group">
+        <label for="first_name" class="form-label" data-i18n="f_first_name">First name</label>
+        <input type="text" id="first_name" name="first_name" class="form-input" autocomplete="given-name" required>
+    </div>
+    <div class="form-group">
+        <label for="middle_name" class="form-label"><span data-i18n="f_middle_name">Middle name</span> <span class="text-muted" data-i18n="optional">(optional)</span></label>
+        <input type="text" id="middle_name" name="middle_name" class="form-input" autocomplete="additional-name">
+    </div>
+    <div class="form-group">
+        <label for="email" class="form-label" data-i18n="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="your@email.com"
+               class="form-input" autocomplete="email" required>
+    </div>
+    <div class="form-group">
+        <label for="username" class="form-label" data-i18n="username">Username</label>
+        <input type="text" id="username" name="username" placeholder="cooluser123"
+               class="form-input" autocomplete="username" required>
+    </div>
+    <div class="form-group">
+        <label for="plain_password" class="form-label" data-i18n="password">Password</label>
+        <input type="password" id="plain_password" name="plain_password"
+               placeholder="••••••••" class="form-input"
+               autocomplete="new-password" required>
+    </div>
+    <div class="form-group">
+        <label for="confirm_password" class="form-label" data-i18n="confirm_password">Confirm password</label>
+        <input type="password" id="confirm_password" name="confirm_password"
+               placeholder="••••••••" class="form-input"
+               autocomplete="new-password" required>
+    </div>
+    <button type="submit" id="submitBtn" class="btn btn-primary btn-block" data-i18n="create_account">Create account</button>
+</form>
+{% endblock %}
+
+{% block auth_footer %}
+<span class="text-muted" data-i18n="have_account">Already have an account?</span>
+<a href="/sign-in" class="auth-link" data-i18n="signin_btn">Sign in</a>
+{% endblock %}
+
+{% block auth_scripts %}
+<script src="/static/js/auth-common.js"></script>
+<script src="/static/js/sign_up.js"></script>
+{% endblock %}

@@ -1,0 +1,6 @@
+outs:
+- md5: cf2a6c1aad9cc585b81a10d0aaee3b76.dir
+  size: 6075819300
+  nfiles: 91953
+  hash: md5
+  path: processed_images
